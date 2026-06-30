@@ -396,7 +396,6 @@ export class ChewItView extends ItemView {
   async runPresets(presets: PromptPreset[], append = false): Promise<void> {
     if (this.running) return;
 
-    const s = this.plugin.settings;
     const lang = this.plugin.currentLang();
 
     if (presets.length === 0) {

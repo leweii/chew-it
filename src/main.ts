@@ -1,4 +1,4 @@
-import { MarkdownView, Plugin, TFile, WorkspaceLeaf, normalizePath } from "obsidian";
+import { MarkdownView, Plugin, TFile, WorkspaceLeaf, moment, normalizePath } from "obsidian";
 import {
   ChewItSettings,
   ChewItSettingTab,
@@ -78,12 +78,12 @@ export default class ChewItPlugin extends Plugin {
   }
 
   async loadSettings(): Promise<void> {
-    const data = (await this.loadData()) as ChewItData | Partial<ChewItSettings> | null;
     // New format nests settings under `settings`; older data.json stored the
-    // settings object flat at the top level. Support both.
-    const hasEnvelope = !!data && typeof data === "object" && "settings" in data;
-    const raw = hasEnvelope ? (data as ChewItData).settings : (data as Partial<ChewItSettings> | null);
-    this.settings = Object.assign({}, DEFAULT_SETTINGS, raw ?? {});
+    // settings object flat at the top level. The intersection type lets us read
+    // both shapes without further casts.
+    const data = (await this.loadData()) as (ChewItData & Partial<ChewItSettings>) | null;
+    const source = data?.settings ?? data ?? {};
+    this.settings = Object.assign({}, DEFAULT_SETTINGS, source);
     // Migrate the old global role into any function that has none of its own.
     const legacyRole = this.settings.systemPrompt;
     if (legacyRole) {
@@ -92,12 +92,7 @@ export default class ChewItPlugin extends Plugin {
       }
     }
     delete this.settings.systemPrompt;
-    const stored = hasEnvelope ? (data as ChewItData).results : undefined;
-    // Ignore the legacy single-result shape (an object with a `runs` array).
-    this.noteResults =
-      stored && typeof stored === "object" && !Array.isArray((stored as { runs?: unknown }).runs)
-        ? stored
-        : {};
+    this.noteResults = data?.results ?? {};
   }
 
   async saveSettings(): Promise<void> {
@@ -127,8 +122,7 @@ export default class ChewItPlugin extends Plugin {
   }
 
   currentLang(): Lang {
-    const locale = (window as any).moment?.locale?.() ?? "";
-    return locale.startsWith("zh") ? "zh" : "en";
+    return moment.locale().startsWith("zh") ? "zh" : "en";
   }
 
   // Path of the note the panel should currently target.

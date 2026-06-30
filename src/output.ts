@@ -101,7 +101,7 @@ export function appendToCanvas(existing: string, text: string): string {
   const cards = splitIntoCards(text);
   let data: { nodes?: unknown[]; edges?: unknown[] };
   try {
-    data = JSON.parse(existing);
+    data = JSON.parse(existing) as { nodes?: unknown[]; edges?: unknown[] };
   } catch {
     return toCanvas(text);
   }

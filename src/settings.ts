@@ -131,8 +131,7 @@ export class ChewItSettingTab extends PluginSettingTab {
     // Re-rendering empties and rebuilds the whole tab, which otherwise snaps the
     // scroll back to the top. Capture the scroll position and restore it at the
     // end so adding/removing a card doesn't make the page jump.
-    const scroller =
-      (containerEl.closest(".vertical-tab-content") as HTMLElement | null) ?? containerEl;
+    const scroller = containerEl.closest<HTMLElement>(".vertical-tab-content") ?? containerEl;
     const prevScroll = scroller.scrollTop;
     containerEl.empty();
     const s = this.plugin.settings;

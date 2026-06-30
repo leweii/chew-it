@@ -521,7 +521,7 @@ async function streamClaude(config, req) {
       return;
     }
     if (evt.type === "content_block_delta" && ((_a = evt.delta) == null ? void 0 : _a.type) === "text_delta") {
-      req.onToken(evt.delta.text);
+      if (typeof evt.delta.text === "string") req.onToken(evt.delta.text);
     } else if (evt.type === "error") {
       throw new Error((_c = (_b = evt.error) == null ? void 0 : _b.message) != null ? _c : "Anthropic streaming error");
     }
@@ -1069,7 +1069,6 @@ var ChewItView = class extends import_obsidian2.ItemView {
   // otherwise the result area is cleared first.
   async runPresets(presets, append = false) {
     if (this.running) return;
-    const s = this.plugin.settings;
     const lang = this.plugin.currentLang();
     if (presets.length === 0) {
       new import_obsidian2.Notice(t(lang, "notice.needFn"));
@@ -1404,10 +1403,10 @@ var ChewItPlugin = class extends import_obsidian3.Plugin {
     );
   }
   async loadSettings() {
+    var _a, _b, _c;
     const data = await this.loadData();
-    const hasEnvelope = !!data && typeof data === "object" && "settings" in data;
-    const raw = hasEnvelope ? data.settings : data;
-    this.settings = Object.assign({}, DEFAULT_SETTINGS, raw != null ? raw : {});
+    const source = (_b = (_a = data == null ? void 0 : data.settings) != null ? _a : data) != null ? _b : {};
+    this.settings = Object.assign({}, DEFAULT_SETTINGS, source);
     const legacyRole = this.settings.systemPrompt;
     if (legacyRole) {
       for (const p of this.settings.prompts) {
@@ -1415,8 +1414,7 @@ var ChewItPlugin = class extends import_obsidian3.Plugin {
       }
     }
     delete this.settings.systemPrompt;
-    const stored = hasEnvelope ? data.results : void 0;
-    this.noteResults = stored && typeof stored === "object" && !Array.isArray(stored.runs) ? stored : {};
+    this.noteResults = (_c = data == null ? void 0 : data.results) != null ? _c : {};
   }
   async saveSettings() {
     await this.persist();
@@ -1442,9 +1440,7 @@ var ChewItPlugin = class extends import_obsidian3.Plugin {
     }).slice(0, keys.length - MAX_CACHED_NOTES).forEach((k) => delete this.noteResults[k]);
   }
   currentLang() {
-    var _a, _b, _c;
-    const locale = (_c = (_b = (_a = window.moment) == null ? void 0 : _a.locale) == null ? void 0 : _b.call(_a)) != null ? _c : "";
-    return locale.startsWith("zh") ? "zh" : "en";
+    return import_obsidian3.moment.locale().startsWith("zh") ? "zh" : "en";
   }
   // Path of the note the panel should currently target.
   currentNotePath() {
