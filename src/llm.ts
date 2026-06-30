@@ -41,7 +41,6 @@ export async function streamCompletion(config: LLMConfig, req: LLMRequest): Prom
 async function streamClaude(config: LLMConfig, req: LLMRequest): Promise<void> {
   // requestUrl buffers the whole response; fetch is required to stream the
   // result token by token, which is the core of the panel's UX.
-  // eslint-disable-next-line
   const resp = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: {
@@ -82,7 +81,6 @@ async function streamClaude(config: LLMConfig, req: LLMRequest): Promise<void> {
 async function streamOpenAI(config: LLMConfig, req: LLMRequest): Promise<void> {
   const url = `${config.baseUrl.replace(/\/$/, "")}/chat/completions`;
   // See streamClaude: fetch is required for token-by-token streaming.
-  // eslint-disable-next-line
   const resp = await fetch(url, {
     method: "POST",
     headers: {
