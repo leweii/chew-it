@@ -1,0 +1,10 @@
+node_modules/
+.DS_Store
+
+# Build artifacts (main.js is attached to the GitHub release instead)
+# Comment the next line out if you prefer committing the built plugin.
+# main.js
+
+# Local plugin data, if you symlink this folder into a vault for testing
+data.json
+*.log

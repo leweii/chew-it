@@ -1,0 +1,134 @@
+// Streaming LLM client for Chew It.
+// Supports the Anthropic Messages API and any OpenAI-compatible /chat/completions endpoint.
+// Uses the browser `fetch` (Obsidian runs in Electron) so we can stream token-by-token.
+
+export type Provider = "claude" | "openai";
+
+export interface LLMConfig {
+  provider: Provider;
+  apiKey: string;
+  model: string;
+  baseUrl: string; // OpenAI-compatible only; ignored for Claude
+  maxTokens: number;
+}
+
+export interface LLMRequest {
+  system: string;
+  user: string;
+  signal: AbortSignal;
+  onToken: (text: string) => void;
+}
+
+export async function streamCompletion(config: LLMConfig, req: LLMRequest): Promise<void> {
+  if (config.provider === "claude") {
+    await streamClaude(config, req);
+  } else {
+    await streamOpenAI(config, req);
+  }
+}
+
+async function streamClaude(config: LLMConfig, req: LLMRequest): Promise<void> {
+  const resp = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      "x-api-key": config.apiKey,
+      "anthropic-version": "2023-06-01",
+      // Required to allow the request from a browser/Electron origin (CORS).
+      "anthropic-dangerous-direct-browser-access": "true",
+    },
+    body: JSON.stringify({
+      model: config.model,
+      max_tokens: config.maxTokens,
+      // Omit an empty role so a blank per-function setting sends no system.
+      ...(req.system ? { system: req.system } : {}),
+      stream: true,
+      messages: [{ role: "user", content: req.user }],
+    }),
+    signal: req.signal,
+  });
+
+  await ensureOk(resp);
+  await readSSE(resp, (data) => {
+    if (data === "[DONE]") return;
+    let evt: any;
+    try {
+      evt = JSON.parse(data);
+    } catch {
+      return;
+    }
+    if (evt.type === "content_block_delta" && evt.delta?.type === "text_delta") {
+      req.onToken(evt.delta.text as string);
+    } else if (evt.type === "error") {
+      throw new Error(evt.error?.message ?? "Anthropic streaming error");
+    }
+  });
+}
+
+async function streamOpenAI(config: LLMConfig, req: LLMRequest): Promise<void> {
+  const url = `${config.baseUrl.replace(/\/$/, "")}/chat/completions`;
+  const resp = await fetch(url, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      authorization: `Bearer ${config.apiKey}`,
+    },
+    body: JSON.stringify({
+      model: config.model,
+      max_tokens: config.maxTokens,
+      stream: true,
+      messages: [
+        ...(req.system ? [{ role: "system", content: req.system }] : []),
+        { role: "user", content: req.user },
+      ],
+    }),
+    signal: req.signal,
+  });
+
+  await ensureOk(resp);
+  await readSSE(resp, (data) => {
+    if (data === "[DONE]") return;
+    let evt: any;
+    try {
+      evt = JSON.parse(data);
+    } catch {
+      return;
+    }
+    const delta = evt.choices?.[0]?.delta?.content;
+    if (typeof delta === "string" && delta) req.onToken(delta);
+  });
+}
+
+async function ensureOk(resp: Response): Promise<void> {
+  if (resp.ok && resp.body) return;
+  let detail = "";
+  try {
+    detail = await resp.text();
+  } catch {
+    /* ignore */
+  }
+  throw new Error(`HTTP ${resp.status}${detail ? ": " + detail.slice(0, 600) : ""}`);
+}
+
+// Minimal Server-Sent-Events line reader shared by both providers.
+// Both Anthropic and OpenAI emit `data: <json>` lines.
+async function readSSE(resp: Response, onData: (data: string) => void): Promise<void> {
+  const reader = resp.body!.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+
+    let nl: number;
+    while ((nl = buffer.indexOf("\n")) !== -1) {
+      const line = buffer.slice(0, nl).replace(/\r$/, "").trim();
+      buffer = buffer.slice(nl + 1);
+      if (line.startsWith("data:")) {
+        onData(line.slice(5).trim());
+      }
+    }
+  }
+}

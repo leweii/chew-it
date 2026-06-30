@@ -1,0 +1,433 @@
+.chew-it-view {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 8px 12px;
+  gap: 8px;
+}
+
+/* Header row: the clickable brand and the function chips share one line. */
+.chew-it-header {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+}
+
+/* "Chew It" is the primary action: a compact, fixed-height accent button. */
+.chew-it-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 28px;
+  padding: 0 12px;
+  border: none;
+  box-shadow: none;
+  border-radius: var(--radius-s);
+  background: var(--interactive-accent);
+  color: var(--text-on-accent);
+  font-size: var(--font-ui-small);
+  font-weight: var(--font-bold);
+  line-height: 1;
+  cursor: pointer;
+}
+
+.chew-it-brand:hover:not(:disabled) {
+  background: var(--interactive-accent-hover);
+}
+
+.chew-it-brand:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.chew-it-brand-icon {
+  display: inline-flex;
+}
+
+.chew-it-brand-icon svg {
+  width: 15px;
+  height: 15px;
+}
+
+/* While a run is in flight the sparkle spins and the button goes neutral. */
+.chew-it-brand.is-running {
+  background: var(--background-modifier-border);
+  color: var(--text-muted);
+  opacity: 1;
+}
+
+.chew-it-brand.is-running .chew-it-brand-icon {
+  animation: chew-it-spin 1.1s linear infinite;
+}
+
+@keyframes chew-it-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* "···" actions button — lives in the tab strip and acts on the active tab. */
+.chew-it-menu-btn {
+  flex: 0 0 auto;
+  align-self: center;
+  margin: 0 0 1px 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 24px;
+  padding: 0;
+  border: none;
+  box-shadow: none;
+  border-radius: var(--radius-s);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.chew-it-menu-btn:hover {
+  background: var(--background-modifier-hover);
+  color: var(--text-normal);
+}
+
+.chew-it-menu-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* Checkboxes share the brand's row, wrapping within the space between the
+   brand and the actions button. */
+.chew-it-tabs {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 6px;
+}
+
+.chew-it-tabs--disabled {
+  pointer-events: none;
+  opacity: 0.5;
+}
+
+/* Each function is a checkbox: a square that fills with accent when selected. */
+.chew-it-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 24px;
+  padding: 0 8px;
+  border: none;
+  border-radius: var(--radius-s);
+  background: transparent;
+  color: var(--text-muted);
+  box-shadow: none;
+  cursor: pointer;
+  font-size: var(--font-ui-smaller);
+  transition: color 0.1s ease, background 0.1s ease;
+}
+
+.chew-it-chip:hover {
+  background: var(--background-modifier-hover);
+  color: var(--text-normal);
+}
+
+.chew-it-chip.is-selected {
+  color: var(--text-normal);
+}
+
+/* The checkbox box itself; the check icon hides until selected. */
+.chew-it-chip-check {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  border-radius: 4px;
+  border: 1px solid var(--text-faint);
+  color: transparent;
+}
+
+.chew-it-chip-check svg {
+  width: 10px;
+  height: 10px;
+  stroke-width: 3;
+}
+
+.chew-it-chip.is-selected .chew-it-chip-check {
+  background: var(--interactive-accent);
+  border-color: var(--interactive-accent);
+  color: var(--text-on-accent);
+}
+
+.chew-it-tabs-empty {
+  font-size: var(--font-ui-smaller);
+  color: var(--text-muted);
+}
+
+.chew-it-results-header {
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+/* Round "target" button on the left — jumps back to the analyzed note. */
+.chew-it-locate-btn {
+  flex: 0 0 auto;
+  align-self: center;
+  margin: 0 4px 1px 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: none;
+  box-shadow: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.chew-it-locate-btn:hover {
+  background: var(--background-modifier-hover);
+  color: var(--text-accent);
+}
+
+.chew-it-locate-btn svg {
+  width: 15px;
+  height: 15px;
+}
+
+/* Browser-style tabs distinguished by a soft fill — no borders or baseline. */
+.chew-it-result-tabs {
+  display: flex;
+  flex: 1 1 auto;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.chew-it-result-tab {
+  padding: 4px 12px;
+  border: none;
+  border-radius: var(--radius-s) var(--radius-s) 0 0;
+  background: transparent;
+  box-shadow: none;
+  color: var(--text-muted);
+  font-size: var(--font-ui-smaller);
+  cursor: pointer;
+}
+
+.chew-it-result-tab:hover {
+  background: var(--background-modifier-hover);
+  color: var(--text-normal);
+}
+
+/* Active tab shares the pane's colour so it merges with the content below,
+   with no dividing line between them. */
+.chew-it-result-tab.is-active {
+  background: var(--background-secondary);
+  color: var(--text-normal);
+  font-weight: var(--font-bold);
+}
+
+.chew-it-result-tab.is-running {
+  font-style: italic;
+}
+
+.chew-it-result-tab.is-error {
+  color: var(--text-error);
+}
+
+/* Status bar pinned to the bottom-left, with stop tucked to its right. */
+.chew-it-statusbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid var(--background-modifier-border);
+}
+
+/* "Thinking" spinner: shows only while a run is in flight. */
+.chew-it-status-icon {
+  flex: 0 0 auto;
+  display: inline-flex;
+  color: var(--text-accent);
+}
+
+.chew-it-status-icon svg {
+  width: 13px;
+  height: 13px;
+  animation: chew-it-spin 0.9s linear infinite;
+}
+
+.chew-it-status {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: var(--font-ui-smaller);
+  color: var(--text-muted);
+}
+
+/* While analyzing, the status text gently pulses to feel alive. */
+.chew-it-status.is-working {
+  color: var(--text-normal);
+  animation: chew-it-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes chew-it-pulse {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}
+
+.chew-it-stop {
+  flex: 0 0 auto;
+  font-size: var(--font-ui-smaller);
+}
+
+.chew-it-result {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  padding: 10px 12px;
+  border-radius: var(--radius-m);
+  background: var(--background-secondary);
+  user-select: text;
+}
+
+/* When tabs are present, the pane connects to them: cancel the view's row gap
+   and square the top corners so it reads as one surface with the active tab. */
+.chew-it-result.is-tabbed {
+  margin-top: -8px;
+  border-radius: 0 0 var(--radius-m) var(--radius-m);
+}
+
+.chew-it-run {
+  padding-top: 6px;
+}
+
+.chew-it-run-status {
+  font-size: var(--font-ui-smaller);
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+
+.chew-it-error {
+  white-space: pre-wrap;
+  color: var(--text-error);
+  font-size: var(--font-ui-smaller);
+}
+
+.chew-it-textarea {
+  width: 100%;
+  resize: vertical;
+  font-family: var(--font-text);
+}
+
+/* Group each function / output preset under one shaded, collapsible card. */
+.chew-it-group {
+  background: var(--background-secondary);
+  border-radius: var(--radius-m);
+  padding: 4px 12px 10px;
+  margin-bottom: 12px;
+  transition: opacity 0.1s ease;
+}
+
+/* The always-visible header row; click to expand/collapse. */
+.chew-it-group > .chew-it-group-summary {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  list-style: none;
+  padding: 6px 2px;
+  font-weight: var(--font-bold);
+  color: var(--text-accent);
+}
+
+.chew-it-group > .chew-it-group-summary::-webkit-details-marker {
+  display: none;
+}
+
+/* Title takes the row; the delete button sits at the far right. */
+.chew-it-group-title {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chew-it-group-del {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: none;
+  box-shadow: none;
+  border-radius: var(--radius-s);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.chew-it-group-del:hover {
+  background: var(--background-modifier-hover);
+  color: var(--text-error);
+}
+
+.chew-it-group-del svg {
+  width: 15px;
+  height: 15px;
+}
+
+/* Keep every control in a card the same width so the fields line up. */
+.chew-it-group .setting-item-control > input[type="text"],
+.chew-it-group .setting-item-control > input[type="password"],
+.chew-it-group .setting-item-control > select {
+  width: 220px;
+}
+
+/* Folder triangle that flips when the card opens. */
+.chew-it-group > .chew-it-group-summary::before {
+  content: "▸";
+  display: inline-block;
+  margin-right: 6px;
+  color: var(--text-muted);
+  transition: transform 0.1s ease;
+}
+
+.chew-it-group[open] > .chew-it-group-summary::before {
+  transform: rotate(90deg);
+}
+
+/* Collapsed cards need no bottom padding. */
+.chew-it-group:not([open]) {
+  padding-bottom: 4px;
+}
+
+/* A disabled function is kept but dimmed so it reads as "parked". */
+.chew-it-group.is-disabled {
+  opacity: 0.55;
+}
+
+/* No dividers inside a card — spacing alone separates the rows. */
+.chew-it-group .setting-item {
+  border-top: none;
+}
+
+.chew-it-group .chew-it-group-head {
+  margin-bottom: 2px;
+}
+
+.chew-it-group .chew-it-group-head .setting-item-name {
+  font-weight: var(--font-bold);
+  color: var(--text-accent);
+}
