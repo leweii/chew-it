@@ -296,14 +296,15 @@ export class ChewItView extends ItemView {
     if (!run) return;
 
     const lang = this.lang();
-    // The tab carries its own prompt + role; only fall back to the settings
-    // lookup for results cached before they were stored on the tab.
-    let prompt = run.prompt;
-    let system = run.system;
+    // Prefer the live preset from settings so edits made after the tab was
+    // created take effect; fall back to the tab's stored snapshot only if
+    // the preset no longer exists (e.g. it was deleted).
+    const preset = this.plugin.settings.prompts.find((p) => p.id === run.id || p.label === run.label);
+    let prompt = preset?.prompt ?? "";
+    let system = preset?.system ?? "";
     if (!prompt) {
-      const preset = this.plugin.settings.prompts.find((p) => p.id === run.id || p.label === run.label);
-      prompt = preset?.prompt ?? "";
-      system = preset?.system ?? "";
+      prompt = run.prompt;
+      system = run.system;
     }
     if (!prompt) {
       new Notice(t(lang, "notice.cannotRegen"));

@@ -980,12 +980,12 @@ var ChewItView = class extends import_obsidian2.ItemView {
     const run = this.activeRun;
     if (!run) return;
     const lang = this.lang();
-    let prompt = run.prompt;
-    let system = run.system;
+    const preset = this.plugin.settings.prompts.find((p) => p.id === run.id || p.label === run.label);
+    let prompt = (_a = preset == null ? void 0 : preset.prompt) != null ? _a : "";
+    let system = (_b = preset == null ? void 0 : preset.system) != null ? _b : "";
     if (!prompt) {
-      const preset = this.plugin.settings.prompts.find((p) => p.id === run.id || p.label === run.label);
-      prompt = (_a = preset == null ? void 0 : preset.prompt) != null ? _a : "";
-      system = (_b = preset == null ? void 0 : preset.system) != null ? _b : "";
+      prompt = run.prompt;
+      system = run.system;
     }
     if (!prompt) {
       new import_obsidian2.Notice(t(lang, "notice.cannotRegen"));
