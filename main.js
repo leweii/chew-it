@@ -28,6 +28,117 @@ var import_obsidian3 = require("obsidian");
 // src/settings.ts
 var import_obsidian = require("obsidian");
 
+// src/llm.ts
+async function streamCompletion(config, req) {
+  if (config.provider === "claude") {
+    await streamClaude(config, req);
+  } else {
+    await streamOpenAI(config, req);
+  }
+}
+async function completeText(config, req) {
+  let out = "";
+  await streamCompletion(config, { ...req, onToken: (tk) => out += tk });
+  return out;
+}
+async function streamClaude(config, req) {
+  const resp = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      "x-api-key": config.apiKey,
+      "anthropic-version": "2023-06-01",
+      // Required to allow the request from a browser/Electron origin (CORS).
+      "anthropic-dangerous-direct-browser-access": "true"
+    },
+    body: JSON.stringify({
+      model: config.model,
+      max_tokens: config.maxTokens,
+      // Omit an empty role so a blank per-function setting sends no system.
+      ...req.system ? { system: req.system } : {},
+      stream: true,
+      messages: [{ role: "user", content: req.user }]
+    }),
+    signal: req.signal
+  });
+  await ensureOk(resp);
+  await readSSE(resp, (data) => {
+    var _a, _b, _c;
+    if (data === "[DONE]") return;
+    let evt;
+    try {
+      evt = JSON.parse(data);
+    } catch (e) {
+      return;
+    }
+    if (evt.type === "content_block_delta" && ((_a = evt.delta) == null ? void 0 : _a.type) === "text_delta") {
+      if (typeof evt.delta.text === "string") req.onToken(evt.delta.text);
+    } else if (evt.type === "error") {
+      throw new Error((_c = (_b = evt.error) == null ? void 0 : _b.message) != null ? _c : "Anthropic streaming error");
+    }
+  });
+}
+async function streamOpenAI(config, req) {
+  const url = `${config.baseUrl.replace(/\/$/, "")}/chat/completions`;
+  const resp = await fetch(url, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      authorization: `Bearer ${config.apiKey}`
+    },
+    body: JSON.stringify({
+      model: config.model,
+      max_tokens: config.maxTokens,
+      stream: true,
+      messages: [
+        ...req.system ? [{ role: "system", content: req.system }] : [],
+        { role: "user", content: req.user }
+      ]
+    }),
+    signal: req.signal
+  });
+  await ensureOk(resp);
+  await readSSE(resp, (data) => {
+    var _a, _b, _c;
+    if (data === "[DONE]") return;
+    let evt;
+    try {
+      evt = JSON.parse(data);
+    } catch (e) {
+      return;
+    }
+    const delta = (_c = (_b = (_a = evt.choices) == null ? void 0 : _a[0]) == null ? void 0 : _b.delta) == null ? void 0 : _c.content;
+    if (typeof delta === "string" && delta) req.onToken(delta);
+  });
+}
+async function ensureOk(resp) {
+  if (resp.ok && resp.body) return;
+  let detail = "";
+  try {
+    detail = await resp.text();
+  } catch (e) {
+  }
+  throw new Error(`HTTP ${resp.status}${detail ? ": " + detail.slice(0, 600) : ""}`);
+}
+async function readSSE(resp, onData) {
+  const reader = resp.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    let nl;
+    while ((nl = buffer.indexOf("\n")) !== -1) {
+      const line = buffer.slice(0, nl).replace(/\r$/, "").trim();
+      buffer = buffer.slice(nl + 1);
+      if (line.startsWith("data:")) {
+        onData(line.slice(5).trim());
+      }
+    }
+  }
+}
+
 // src/i18n.ts
 var ZH = {
   "ui.analyze": "\u5206\u6790\u5F53\u524D\u6587\u6863",
@@ -83,6 +194,14 @@ var ZH = {
   "set.fnSystem": "\u89D2\u8272\u8BBE\u5B9A",
   "set.fnSystemPlaceholder": "\u53EF\u7559\u7A7A\uFF1B\u586B\u5199\u5219\u4F5C\u4E3A\u8BE5\u529F\u80FD\u7684\u7CFB\u7EDF\u63D0\u793A\u3002",
   "set.prompt": "\u63D0\u793A\u8BCD",
+  "set.genPrompt": "\u7528 AI \u6839\u636E\u540D\u79F0\u751F\u6210\u89D2\u8272\u8BBE\u5B9A\u548C\u63D0\u793A\u8BCD",
+  "set.genPromptGenerating": "\u751F\u6210\u4E2D\u2026",
+  "notice.genPromptNeedName": "\u8BF7\u5148\u586B\u5199\u89C6\u89D2\u540D\u79F0\uFF0C\u518D\u751F\u6210\u63D0\u793A\u8BCD\u3002",
+  "notice.genPromptConfirm": "\u8FD9\u4F1A\u8986\u76D6\u5F53\u524D\u7684\u89D2\u8272\u8BBE\u5B9A\u548C\u63D0\u793A\u8BCD\uFF0C\u786E\u5B9A\u8981\u7528 AI \u91CD\u65B0\u751F\u6210\u5417\uFF1F",
+  "ui.confirm": "\u786E\u5B9A",
+  "ui.cancel": "\u53D6\u6D88",
+  "prompt.genSystem": "\u4F60\u662F\u4E00\u4F4D\u63D0\u793A\u8BCD\u5DE5\u7A0B\u4E13\u5BB6\uFF0C\u64C5\u957F\u4E3A\u6587\u6863\u5206\u6790\u5DE5\u5177\u8BBE\u8BA1\u7B80\u6D01\u6709\u6548\u7684\u89D2\u8272\u8BBE\u5B9A\u548C\u4EFB\u52A1\u63D0\u793A\u8BCD\u3002\u4E25\u683C\u6309\u8981\u6C42\u8F93\u51FA JSON\uFF0C\u4E0D\u8981\u6DFB\u52A0\u4EFB\u4F55\u591A\u4F59\u6587\u672C\u3001\u89E3\u91CA\u6216\u4EE3\u7801\u5757\u6807\u8BB0\u3002",
+  "prompt.genUser": '\u8BF7\u4E3A\u4E00\u4E2A Obsidian \u7B14\u8BB0\u5206\u6790\u63D2\u4EF6\u8BBE\u8BA1\u4E00\u4E2A\u300C\u5206\u6790\u89C6\u89D2\u300D\uFF0C\u540D\u79F0\u662F\uFF1A\u300C{name}\u300D\u3002\n\n\u5206\u522B\u7ED9\u51FA\uFF1A\n1. system\uFF1A\u8BE5\u89C6\u89D2\u7684\u89D2\u8272\u8BBE\u5B9A\uFF0C\u5B9A\u4E49 AI \u7684\u8EAB\u4EFD\u3001\u8BED\u6C14\u4E0E\u4E13\u957F\uFF081-3 \u53E5\uFF09\u3002\n2. prompt\uFF1A\u8BE5\u89C6\u89D2\u7684\u5177\u4F53\u4EFB\u52A1\u6307\u4EE4\uFF0C\u4F1A\u548C\u6587\u6863\u6B63\u6587\u62FC\u63A5\u540E\u53D1\u7ED9 AI\uFF0C\u7528\u4E8E\u6307\u5BFC\u5982\u4F55\u4ECE\u300C{name}\u300D\u8FD9\u4E2A\u89D2\u5EA6\u5206\u6790\u6587\u6863\uFF082-4 \u53E5\uFF0C\u8BF4\u660E\u8981\u8F93\u51FA\u4EC0\u4E48\u3001\u5982\u4F55\u7EC4\u7EC7\uFF09\u3002\n\n\u53EA\u8F93\u51FA\u5982\u4E0B JSON\uFF0C\u4E0D\u8981\u6709\u5176\u5B83\u6587\u5B57\uFF1A\n{"system": "...", "prompt": "..."}',
   "ui.output": "\u8F93\u51FA",
   "ui.outputNone": "\uFF08\u65E0\u8F93\u51FA\u914D\u7F6E\uFF09",
   "run.savedTo": "\u5DF2\u4FDD\u5B58\uFF1A{path}",
@@ -168,6 +287,21 @@ var EN = {
   "set.fnSystem": "Role",
   "set.fnSystemPlaceholder": "Optional; used as this function's system prompt.",
   "set.prompt": "Prompt",
+  "set.genPrompt": "Generate the role and prompt from the name with AI",
+  "set.genPromptGenerating": "Generating\u2026",
+  "notice.genPromptNeedName": "Enter a perspective name before generating a prompt.",
+  "notice.genPromptConfirm": "This will overwrite the current role and prompt. Generate with AI anyway?",
+  "ui.confirm": "Confirm",
+  "ui.cancel": "Cancel",
+  "prompt.genSystem": "You are a prompt engineering expert who designs concise, effective system roles and task prompts for a document-analysis tool. Follow the output format exactly \u2014 return JSON only, with no extra text, explanation, or code fences.",
+  "prompt.genUser": `Design an "analysis perspective" for an Obsidian note-analysis plugin, named: "{name}".
+
+Provide:
+1. system: the role for this perspective \u2014 the AI's identity, tone, and expertise (1-3 sentences).
+2. prompt: the specific task instruction for this perspective, which will be concatenated with the note content and sent to the AI, guiding it on how to analyze the document from the "{name}" angle (2-4 sentences, describing what to output and how to organize it).
+
+Output only the following JSON, nothing else:
+{"system": "...", "prompt": "..."}`,
   "ui.output": "Output",
   "ui.outputNone": "(no outputs configured)",
   "run.savedTo": "Saved: {path}",
@@ -218,6 +352,16 @@ var DEFAULT_ROLE = "\u4F60\u662F\u4E00\u4F4D\u5584\u4E8E\u8BB2\u89E3\u7684\u5BFC
 function newPresetId() {
   return "fn-" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
 }
+function buildLLMConfig(s) {
+  const config = s.provider === "claude" ? { provider: "claude", apiKey: s.claudeApiKey, model: s.claudeModel, baseUrl: "", maxTokens: s.maxTokens } : {
+    provider: "openai",
+    apiKey: s.openaiApiKey,
+    model: s.openaiModel,
+    baseUrl: s.openaiBaseUrl,
+    maxTokens: s.maxTokens
+  };
+  return config.apiKey ? config : null;
+}
 var DEFAULT_SETTINGS = {
   provider: "claude",
   claudeApiKey: "",
@@ -232,28 +376,28 @@ var DEFAULT_SETTINGS = {
       label: "\u63D0\u70BC\u5927\u7EB2",
       enabled: true,
       system: DEFAULT_ROLE,
-      prompt: "\u8BF7\u9605\u8BFB\u4E0B\u9762\u7684\u6587\u6863\uFF0C\u63D0\u70BC\u51FA\u6E05\u6670\u7684\u5C42\u7EA7\u5927\u7EB2\uFF0C\u7528 Markdown \u6807\u9898\u548C\u5217\u8868\u7EC4\u7EC7\uFF0C\u8986\u76D6\u4E3B\u8981\u8BBA\u70B9\u4E0E\u6574\u4F53\u7ED3\u6784\u3002"
+      prompt: ""
     },
     {
       id: "concepts",
       label: "\u6982\u5FF5\u89E3\u6790",
       enabled: true,
       system: DEFAULT_ROLE,
-      prompt: "\u8BF7\u9605\u8BFB\u4E0B\u9762\u7684\u6587\u6863\uFF0C\u627E\u51FA\u5176\u4E2D\u5173\u952E\u4E14\u53EF\u80FD\u96BE\u4EE5\u7406\u89E3\u7684\u6982\u5FF5\uFF0C\u9010\u4E00\u7528\u901A\u4FD7\u7684\u8BED\u8A00\u89E3\u91CA\u6E05\u695A\uFF0C\u5FC5\u8981\u65F6\u4E3E\u4F8B\u8BF4\u660E\u3002"
+      prompt: ""
     },
     {
       id: "distill",
       label: "\u539F\u6587\u7CBE\u70BC",
       enabled: true,
       system: DEFAULT_ROLE,
-      prompt: "\u8BF7\u9605\u8BFB\u4E0B\u9762\u7684\u6587\u6863\uFF0C\u8F93\u51FA\u7CBE\u70BC\u540E\u7684\u6838\u5FC3\u5185\u5BB9\uFF1A\u7528\u7B80\u6D01\u51C6\u786E\u7684\u8BED\u8A00\u6982\u62EC\u8981\u70B9\uFF0C\u53BB\u9664\u5197\u4F59\uFF0C\u4FDD\u7559\u5173\u952E\u4FE1\u606F\u4E0E\u7ED3\u8BBA\u3002"
+      prompt: ""
     },
     {
       id: "translate",
       label: "\u7FFB\u8BD1",
       enabled: false,
       system: DEFAULT_ROLE,
-      prompt: "\u8BF7\u7FFB\u8BD1\u4E0B\u9762\u7684\u6587\u6863\uFF1A\u4E2D\u6587\u7FFB\u6210\u82F1\u6587\uFF0C\u5176\u4ED6\u8BED\u8A00\u7FFB\u6210\u4E2D\u6587\u3002\u4FDD\u6301\u539F\u610F\u3001\u672F\u8BED\u4E0E\u8BED\u6C14\uFF0C\u8F93\u51FA\u901A\u987A\u81EA\u7136\u3002"
+      prompt: ""
     }
   ],
   outputs: [
@@ -273,6 +417,45 @@ var DEFAULT_SETTINGS = {
     }
   ]
 };
+function parseGeneratedPreset(raw) {
+  const cleaned = raw.trim().replace(/^```(?:json)?\n?/, "").replace(/```$/, "").trim();
+  try {
+    const obj = JSON.parse(cleaned);
+    if (typeof obj.prompt === "string") {
+      return { system: typeof obj.system === "string" ? obj.system : "", prompt: obj.prompt };
+    }
+  } catch (e) {
+  }
+  return null;
+}
+var ConfirmModal = class extends import_obsidian.Modal {
+  constructor(app, message, confirmText, cancelText, onResult) {
+    super(app);
+    this.message = message;
+    this.confirmText = confirmText;
+    this.cancelText = cancelText;
+    this.onResult = onResult;
+    this.resolved = false;
+  }
+  onOpen() {
+    this.contentEl.createEl("p", { text: this.message });
+    new import_obsidian.Setting(this.contentEl).addButton((b) => b.setButtonText(this.cancelText).onClick(() => this.finish(false))).addButton((b) => b.setButtonText(this.confirmText).setCta().onClick(() => this.finish(true)));
+  }
+  onClose() {
+    this.contentEl.empty();
+    if (!this.resolved) this.onResult(false);
+  }
+  finish(v) {
+    this.resolved = true;
+    this.onResult(v);
+    this.close();
+  }
+};
+function confirmDialog(app, message, confirmText, cancelText) {
+  return new Promise((resolve) => {
+    new ConfirmModal(app, message, confirmText, cancelText, resolve).open();
+  });
+}
 var ChewItSettingTab = class extends import_obsidian.PluginSettingTab {
   constructor(app, plugin) {
     super(app, plugin);
@@ -288,6 +471,49 @@ var ChewItSettingTab = class extends import_obsidian.PluginSettingTab {
       if (block.open) this.openGroups.add(id);
       else this.openGroups.delete(id);
     });
+  }
+  // Ask the LLM to fill in a preset's role + prompt from its name alone.
+  async generatePreset(p, lang) {
+    var _a, _b;
+    const name = p.label.trim();
+    if (!name) {
+      new import_obsidian.Notice(t(lang, "notice.genPromptNeedName"));
+      return;
+    }
+    const config = buildLLMConfig(this.plugin.settings);
+    if (!config) {
+      new import_obsidian.Notice(t(lang, "notice.needKey"));
+      return;
+    }
+    const hasContent = p.prompt.trim().length > 0 || ((_a = p.system) != null ? _a : "").trim().length > 0;
+    if (hasContent) {
+      const ok = await confirmDialog(
+        this.app,
+        t(lang, "notice.genPromptConfirm"),
+        t(lang, "ui.confirm"),
+        t(lang, "ui.cancel")
+      );
+      if (!ok) return;
+    }
+    try {
+      const raw = await completeText(config, {
+        system: t(lang, "prompt.genSystem"),
+        user: t(lang, "prompt.genUser", { name }),
+        signal: new AbortController().signal
+      });
+      const parsed = parseGeneratedPreset(raw);
+      if (parsed) {
+        p.system = parsed.system;
+        p.prompt = parsed.prompt;
+      } else {
+        p.prompt = raw.trim();
+      }
+      await this.plugin.saveSettings();
+      this.plugin.refreshViews();
+      this.display();
+    } catch (e) {
+      new import_obsidian.Notice(t(lang, "notice.error", { msg: String((_b = e.message) != null ? _b : e) }));
+    }
   }
   display() {
     var _a;
@@ -387,7 +613,19 @@ var ChewItSettingTab = class extends import_obsidian.PluginSettingTab {
           await save();
           this.plugin.refreshViews();
         })
-      ).addToggle(
+      ).addExtraButton((btn) => {
+        btn.setIcon("sparkles").setTooltip(t(lang, "set.genPrompt"));
+        btn.onClick(async () => {
+          btn.setDisabled(true);
+          btn.setTooltip(t(lang, "set.genPromptGenerating"));
+          try {
+            await this.generatePreset(p, lang);
+          } finally {
+            btn.setDisabled(false);
+            btn.setTooltip(t(lang, "set.genPrompt"));
+          }
+        });
+      }).addToggle(
         (tg) => tg.setTooltip(t(lang, "set.fnEnabled")).setValue(p.enabled !== false).onChange(async (v) => {
           p.enabled = v;
           await save();
@@ -481,112 +719,6 @@ var ChewItSettingTab = class extends import_obsidian.PluginSettingTab {
 
 // src/view.ts
 var import_obsidian2 = require("obsidian");
-
-// src/llm.ts
-async function streamCompletion(config, req) {
-  if (config.provider === "claude") {
-    await streamClaude(config, req);
-  } else {
-    await streamOpenAI(config, req);
-  }
-}
-async function streamClaude(config, req) {
-  const resp = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: {
-      "content-type": "application/json",
-      "x-api-key": config.apiKey,
-      "anthropic-version": "2023-06-01",
-      // Required to allow the request from a browser/Electron origin (CORS).
-      "anthropic-dangerous-direct-browser-access": "true"
-    },
-    body: JSON.stringify({
-      model: config.model,
-      max_tokens: config.maxTokens,
-      // Omit an empty role so a blank per-function setting sends no system.
-      ...req.system ? { system: req.system } : {},
-      stream: true,
-      messages: [{ role: "user", content: req.user }]
-    }),
-    signal: req.signal
-  });
-  await ensureOk(resp);
-  await readSSE(resp, (data) => {
-    var _a, _b, _c;
-    if (data === "[DONE]") return;
-    let evt;
-    try {
-      evt = JSON.parse(data);
-    } catch (e) {
-      return;
-    }
-    if (evt.type === "content_block_delta" && ((_a = evt.delta) == null ? void 0 : _a.type) === "text_delta") {
-      if (typeof evt.delta.text === "string") req.onToken(evt.delta.text);
-    } else if (evt.type === "error") {
-      throw new Error((_c = (_b = evt.error) == null ? void 0 : _b.message) != null ? _c : "Anthropic streaming error");
-    }
-  });
-}
-async function streamOpenAI(config, req) {
-  const url = `${config.baseUrl.replace(/\/$/, "")}/chat/completions`;
-  const resp = await fetch(url, {
-    method: "POST",
-    headers: {
-      "content-type": "application/json",
-      authorization: `Bearer ${config.apiKey}`
-    },
-    body: JSON.stringify({
-      model: config.model,
-      max_tokens: config.maxTokens,
-      stream: true,
-      messages: [
-        ...req.system ? [{ role: "system", content: req.system }] : [],
-        { role: "user", content: req.user }
-      ]
-    }),
-    signal: req.signal
-  });
-  await ensureOk(resp);
-  await readSSE(resp, (data) => {
-    var _a, _b, _c;
-    if (data === "[DONE]") return;
-    let evt;
-    try {
-      evt = JSON.parse(data);
-    } catch (e) {
-      return;
-    }
-    const delta = (_c = (_b = (_a = evt.choices) == null ? void 0 : _a[0]) == null ? void 0 : _b.delta) == null ? void 0 : _c.content;
-    if (typeof delta === "string" && delta) req.onToken(delta);
-  });
-}
-async function ensureOk(resp) {
-  if (resp.ok && resp.body) return;
-  let detail = "";
-  try {
-    detail = await resp.text();
-  } catch (e) {
-  }
-  throw new Error(`HTTP ${resp.status}${detail ? ": " + detail.slice(0, 600) : ""}`);
-}
-async function readSSE(resp, onData) {
-  const reader = resp.body.getReader();
-  const decoder = new TextDecoder();
-  let buffer = "";
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    buffer += decoder.decode(value, { stream: true });
-    let nl;
-    while ((nl = buffer.indexOf("\n")) !== -1) {
-      const line = buffer.slice(0, nl).replace(/\r$/, "").trim();
-      buffer = buffer.slice(nl + 1);
-      if (line.startsWith("data:")) {
-        onData(line.slice(5).trim());
-      }
-    }
-  }
-}
 
 // src/output.ts
 function sanitizeFilename(name) {
@@ -991,7 +1123,7 @@ var ChewItView = class extends import_obsidian2.ItemView {
       new import_obsidian2.Notice(t(lang, "notice.cannotRegen"));
       return;
     }
-    const config = this.buildConfig();
+    const config = buildLLMConfig(this.plugin.settings);
     if (!config) {
       new import_obsidian2.Notice(t(lang, "notice.needKey"));
       return;
@@ -1020,23 +1152,6 @@ var ChewItView = class extends import_obsidian2.ItemView {
     var _a;
     for (const r of this.runs) r.controller.abort();
     (_a = this.extraAbort) == null ? void 0 : _a.abort();
-  }
-  buildConfig() {
-    const s = this.plugin.settings;
-    const config = s.provider === "claude" ? {
-      provider: "claude",
-      apiKey: s.claudeApiKey,
-      model: s.claudeModel,
-      baseUrl: "",
-      maxTokens: s.maxTokens
-    } : {
-      provider: "openai",
-      apiKey: s.openaiApiKey,
-      model: s.openaiModel,
-      baseUrl: s.openaiBaseUrl,
-      maxTokens: s.maxTokens
-    };
-    return config.apiKey ? config : null;
   }
   // Reset the result area for a fresh generation.
   beginGeneration() {
@@ -1074,7 +1189,7 @@ var ChewItView = class extends import_obsidian2.ItemView {
       new import_obsidian2.Notice(t(lang, "notice.needFn"));
       return;
     }
-    const config = this.buildConfig();
+    const config = buildLLMConfig(this.plugin.settings);
     if (!config) {
       new import_obsidian2.Notice(t(lang, "notice.needKey"));
       return;

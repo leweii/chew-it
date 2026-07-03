@@ -2,7 +2,7 @@ import { ItemView, MarkdownRenderer, Menu, Notice, setIcon, WorkspaceLeaf } from
 import type ChewItPlugin from "./main";
 import { streamCompletion, type LLMConfig } from "./llm";
 import { t } from "./i18n";
-import type { PromptPreset } from "./settings";
+import { buildLLMConfig, type PromptPreset } from "./settings";
 import { appendToCanvas, applyFilenameTemplate, extFor, toCanvas } from "./output";
 
 export const VIEW_TYPE_CHEW_IT = "chew-it-view";
@@ -310,7 +310,7 @@ export class ChewItView extends ItemView {
       new Notice(t(lang, "notice.cannotRegen"));
       return;
     }
-    const config = this.buildConfig();
+    const config = buildLLMConfig(this.plugin.settings);
     if (!config) {
       new Notice(t(lang, "notice.needKey"));
       return;
@@ -340,27 +340,6 @@ export class ChewItView extends ItemView {
   private stopAll(): void {
     for (const r of this.runs) r.controller.abort();
     this.extraAbort?.abort();
-  }
-
-  private buildConfig(): LLMConfig | null {
-    const s = this.plugin.settings;
-    const config: LLMConfig =
-      s.provider === "claude"
-        ? {
-            provider: "claude",
-            apiKey: s.claudeApiKey,
-            model: s.claudeModel,
-            baseUrl: "",
-            maxTokens: s.maxTokens,
-          }
-        : {
-            provider: "openai",
-            apiKey: s.openaiApiKey,
-            model: s.openaiModel,
-            baseUrl: s.openaiBaseUrl,
-            maxTokens: s.maxTokens,
-          };
-    return config.apiKey ? config : null;
   }
 
   // Reset the result area for a fresh generation.
@@ -404,7 +383,7 @@ export class ChewItView extends ItemView {
       return;
     }
 
-    const config = this.buildConfig();
+    const config = buildLLMConfig(this.plugin.settings);
     if (!config) {
       new Notice(t(lang, "notice.needKey"));
       return;

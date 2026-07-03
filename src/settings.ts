@@ -1,8 +1,8 @@
-import { App, PluginSettingTab, Setting, setIcon } from "obsidian";
+import { App, Modal, Notice, PluginSettingTab, Setting, setIcon } from "obsidian";
 import type ChewItPlugin from "./main";
-import type { Provider } from "./llm";
+import { completeText, type LLMConfig, type Provider } from "./llm";
 import type { OutputFormat } from "./output";
-import { t } from "./i18n";
+import { t, type Lang } from "./i18n";
 
 export interface PromptPreset {
   id: string;
@@ -45,6 +45,21 @@ export function newPresetId(): string {
   return "fn-" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
 }
 
+// Shared with the panel view, which streams analyses using the same config.
+export function buildLLMConfig(s: ChewItSettings): LLMConfig | null {
+  const config: LLMConfig =
+    s.provider === "claude"
+      ? { provider: "claude", apiKey: s.claudeApiKey, model: s.claudeModel, baseUrl: "", maxTokens: s.maxTokens }
+      : {
+          provider: "openai",
+          apiKey: s.openaiApiKey,
+          model: s.openaiModel,
+          baseUrl: s.openaiBaseUrl,
+          maxTokens: s.maxTokens,
+        };
+  return config.apiKey ? config : null;
+}
+
 export const DEFAULT_SETTINGS: ChewItSettings = {
   provider: "claude",
   claudeApiKey: "",
@@ -59,32 +74,28 @@ export const DEFAULT_SETTINGS: ChewItSettings = {
       label: "提炼大纲",
       enabled: true,
       system: DEFAULT_ROLE,
-      prompt:
-        "请阅读下面的文档，提炼出清晰的层级大纲，用 Markdown 标题和列表组织，覆盖主要论点与整体结构。",
+      prompt: "",
     },
     {
       id: "concepts",
       label: "概念解析",
       enabled: true,
       system: DEFAULT_ROLE,
-      prompt:
-        "请阅读下面的文档，找出其中关键且可能难以理解的概念，逐一用通俗的语言解释清楚，必要时举例说明。",
+      prompt: "",
     },
     {
       id: "distill",
       label: "原文精炼",
       enabled: true,
       system: DEFAULT_ROLE,
-      prompt:
-        "请阅读下面的文档，输出精炼后的核心内容：用简洁准确的语言概括要点，去除冗余，保留关键信息与结论。",
+      prompt: "",
     },
     {
       id: "translate",
       label: "翻译",
       enabled: false,
       system: DEFAULT_ROLE,
-      prompt:
-        "请翻译下面的文档：中文翻成英文，其他语言翻成中文。保持原意、术语与语气，输出通顺自然。",
+      prompt: "",
     },
   ],
   outputs: [
@@ -105,6 +116,67 @@ export const DEFAULT_SETTINGS: ChewItSettings = {
   ],
 };
 
+// Best-effort parse of the JSON the model is asked to return when generating
+// a preset. Returns null on any mismatch so the caller can fall back to
+// treating the raw text as the prompt.
+function parseGeneratedPreset(raw: string): { system: string; prompt: string } | null {
+  const cleaned = raw
+    .trim()
+    .replace(/^```(?:json)?\n?/, "")
+    .replace(/```$/, "")
+    .trim();
+  try {
+    const obj = JSON.parse(cleaned) as { system?: unknown; prompt?: unknown };
+    if (typeof obj.prompt === "string") {
+      return { system: typeof obj.system === "string" ? obj.system : "", prompt: obj.prompt };
+    }
+  } catch {
+    /* fall through */
+  }
+  return null;
+}
+
+// Small yes/no dialog used to confirm overwriting an existing prompt/role
+// before generating a fresh one.
+class ConfirmModal extends Modal {
+  private resolved = false;
+
+  constructor(
+    app: App,
+    private message: string,
+    private confirmText: string,
+    private cancelText: string,
+    private onResult: (v: boolean) => void
+  ) {
+    super(app);
+  }
+
+  onOpen(): void {
+    this.contentEl.createEl("p", { text: this.message });
+    new Setting(this.contentEl)
+      .addButton((b) => b.setButtonText(this.cancelText).onClick(() => this.finish(false)))
+      .addButton((b) => b.setButtonText(this.confirmText).setCta().onClick(() => this.finish(true)));
+  }
+
+  onClose(): void {
+    this.contentEl.empty();
+    // Dismissing without clicking a button (Escape, click-outside) counts as cancel.
+    if (!this.resolved) this.onResult(false);
+  }
+
+  private finish(v: boolean): void {
+    this.resolved = true;
+    this.onResult(v);
+    this.close();
+  }
+}
+
+function confirmDialog(app: App, message: string, confirmText: string, cancelText: string): Promise<boolean> {
+  return new Promise((resolve) => {
+    new ConfirmModal(app, message, confirmText, cancelText, resolve).open();
+  });
+}
+
 export class ChewItSettingTab extends PluginSettingTab {
   plugin: ChewItPlugin;
 
@@ -124,6 +196,49 @@ export class ChewItSettingTab extends PluginSettingTab {
       if (block.open) this.openGroups.add(id);
       else this.openGroups.delete(id);
     });
+  }
+
+  // Ask the LLM to fill in a preset's role + prompt from its name alone.
+  private async generatePreset(p: PromptPreset, lang: Lang): Promise<void> {
+    const name = p.label.trim();
+    if (!name) {
+      new Notice(t(lang, "notice.genPromptNeedName"));
+      return;
+    }
+    const config = buildLLMConfig(this.plugin.settings);
+    if (!config) {
+      new Notice(t(lang, "notice.needKey"));
+      return;
+    }
+    const hasContent = p.prompt.trim().length > 0 || (p.system ?? "").trim().length > 0;
+    if (hasContent) {
+      const ok = await confirmDialog(
+        this.app,
+        t(lang, "notice.genPromptConfirm"),
+        t(lang, "ui.confirm"),
+        t(lang, "ui.cancel")
+      );
+      if (!ok) return;
+    }
+    try {
+      const raw = await completeText(config, {
+        system: t(lang, "prompt.genSystem"),
+        user: t(lang, "prompt.genUser", { name }),
+        signal: new AbortController().signal,
+      });
+      const parsed = parseGeneratedPreset(raw);
+      if (parsed) {
+        p.system = parsed.system;
+        p.prompt = parsed.prompt;
+      } else {
+        p.prompt = raw.trim();
+      }
+      await this.plugin.saveSettings();
+      this.plugin.refreshViews();
+      this.display();
+    } catch (e) {
+      new Notice(t(lang, "notice.error", { msg: String((e as Error).message ?? e) }));
+    }
   }
 
   display(): void {
@@ -270,6 +385,19 @@ export class ChewItSettingTab extends PluginSettingTab {
               this.plugin.refreshViews();
             })
         )
+        .addExtraButton((btn) => {
+          btn.setIcon("sparkles").setTooltip(t(lang, "set.genPrompt"));
+          btn.onClick(async () => {
+            btn.setDisabled(true);
+            btn.setTooltip(t(lang, "set.genPromptGenerating"));
+            try {
+              await this.generatePreset(p, lang);
+            } finally {
+              btn.setDisabled(false);
+              btn.setTooltip(t(lang, "set.genPrompt"));
+            }
+          });
+        })
         .addToggle((tg) =>
           tg
             .setTooltip(t(lang, "set.fnEnabled"))

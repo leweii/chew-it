@@ -57,6 +57,16 @@ const ZH: Dict = {
   "set.fnSystem": "角色设定",
   "set.fnSystemPlaceholder": "可留空；填写则作为该功能的系统提示。",
   "set.prompt": "提示词",
+  "set.genPrompt": "用 AI 根据名称生成角色设定和提示词",
+  "set.genPromptGenerating": "生成中…",
+  "notice.genPromptNeedName": "请先填写视角名称，再生成提示词。",
+  "notice.genPromptConfirm": "这会覆盖当前的角色设定和提示词，确定要用 AI 重新生成吗？",
+  "ui.confirm": "确定",
+  "ui.cancel": "取消",
+  "prompt.genSystem":
+    "你是一位提示词工程专家，擅长为文档分析工具设计简洁有效的角色设定和任务提示词。严格按要求输出 JSON，不要添加任何多余文本、解释或代码块标记。",
+  "prompt.genUser":
+    '请为一个 Obsidian 笔记分析插件设计一个「分析视角」，名称是：「{name}」。\n\n分别给出：\n1. system：该视角的角色设定，定义 AI 的身份、语气与专长（1-3 句）。\n2. prompt：该视角的具体任务指令，会和文档正文拼接后发给 AI，用于指导如何从「{name}」这个角度分析文档（2-4 句，说明要输出什么、如何组织）。\n\n只输出如下 JSON，不要有其它文字：\n{"system": "...", "prompt": "..."}',
   "ui.output": "输出",
   "ui.outputNone": "（无输出配置）",
   "run.savedTo": "已保存：{path}",
@@ -147,6 +157,16 @@ const EN: Dict = {
   "set.fnSystem": "Role",
   "set.fnSystemPlaceholder": "Optional; used as this function's system prompt.",
   "set.prompt": "Prompt",
+  "set.genPrompt": "Generate the role and prompt from the name with AI",
+  "set.genPromptGenerating": "Generating…",
+  "notice.genPromptNeedName": "Enter a perspective name before generating a prompt.",
+  "notice.genPromptConfirm": "This will overwrite the current role and prompt. Generate with AI anyway?",
+  "ui.confirm": "Confirm",
+  "ui.cancel": "Cancel",
+  "prompt.genSystem":
+    "You are a prompt engineering expert who designs concise, effective system roles and task prompts for a document-analysis tool. Follow the output format exactly — return JSON only, with no extra text, explanation, or code fences.",
+  "prompt.genUser":
+    'Design an "analysis perspective" for an Obsidian note-analysis plugin, named: "{name}".\n\nProvide:\n1. system: the role for this perspective — the AI\'s identity, tone, and expertise (1-3 sentences).\n2. prompt: the specific task instruction for this perspective, which will be concatenated with the note content and sent to the AI, guiding it on how to analyze the document from the "{name}" angle (2-4 sentences, describing what to output and how to organize it).\n\nOutput only the following JSON, nothing else:\n{"system": "...", "prompt": "..."}',
   "ui.output": "Output",
   "ui.outputNone": "(no outputs configured)",
   "run.savedTo": "Saved: {path}",

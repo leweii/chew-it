@@ -38,6 +38,17 @@ export async function streamCompletion(config: LLMConfig, req: LLMRequest): Prom
   }
 }
 
+// Non-streaming convenience wrapper for one-off calls (e.g. generating a
+// preset's prompt) that just need the full text, not token-by-token updates.
+export async function completeText(
+  config: LLMConfig,
+  req: { system: string; user: string; signal: AbortSignal }
+): Promise<string> {
+  let out = "";
+  await streamCompletion(config, { ...req, onToken: (tk) => (out += tk) });
+  return out;
+}
+
 async function streamClaude(config: LLMConfig, req: LLMRequest): Promise<void> {
   // requestUrl buffers the whole response; fetch is required to stream the
   // result token by token, which is the core of the panel's UX.
