@@ -32,6 +32,8 @@ var import_obsidian = require("obsidian");
 async function streamCompletion(config, req) {
   if (config.provider === "claude") {
     await streamClaude(config, req);
+  } else if (config.provider === "gemini") {
+    await streamGemini(config, req);
   } else {
     await streamOpenAI(config, req);
   }
@@ -111,6 +113,37 @@ async function streamOpenAI(config, req) {
     if (typeof delta === "string" && delta) req.onToken(delta);
   });
 }
+async function streamGemini(config, req) {
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(config.model)}:streamGenerateContent?alt=sse&key=${encodeURIComponent(config.apiKey)}`;
+  const resp = await fetch(url, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      // Omit an empty role so a blank per-function setting sends no system.
+      ...req.system ? { systemInstruction: { parts: [{ text: req.system }] } } : {},
+      contents: [{ role: "user", parts: [{ text: req.user }] }],
+      generationConfig: { maxOutputTokens: config.maxTokens }
+    }),
+    signal: req.signal
+  });
+  await ensureOk(resp);
+  await readSSE(resp, (data) => {
+    var _a, _b, _c, _d, _e;
+    if (data === "[DONE]") return;
+    let evt;
+    try {
+      evt = JSON.parse(data);
+    } catch (e) {
+      return;
+    }
+    if (evt.error) throw new Error((_a = evt.error.message) != null ? _a : "Gemini streaming error");
+    const text = (_e = (_d = (_c = (_b = evt.candidates) == null ? void 0 : _b[0]) == null ? void 0 : _c.content) == null ? void 0 : _d.parts) == null ? void 0 : _e.map((p) => {
+      var _a2;
+      return (_a2 = p.text) != null ? _a2 : "";
+    }).join("");
+    if (text) req.onToken(text);
+  });
+}
 async function ensureOk(resp) {
   if (resp.ok && resp.body) return;
   let detail = "";
@@ -178,6 +211,11 @@ var ZH = {
   "set.openaiKey": "OpenAI API Key",
   "set.baseUrl": "Base URL",
   "set.baseUrlDesc": "\u517C\u5BB9 OpenAI \u7684\u63A5\u53E3\u5730\u5740\uFF0C\u4F8B\u5982\u672C\u5730 Ollama\uFF1Ahttp://localhost:11434/v1",
+  "set.geminiKey": "Google AI Studio API Key",
+  "set.modelGeminiDesc": "\u9ED8\u8BA4 gemini-2.5-flash",
+  "set.openaiPreset": "\u5FEB\u6377\u9884\u8BBE",
+  "set.openaiPresetDesc": "\u9009\u62E9\u670D\u52A1\u5546\u81EA\u52A8\u586B\u5165\u4E0B\u65B9 Base URL \u548C\u6A21\u578B\uFF0C\u4ECD\u9700\u81EA\u884C\u586B\u5199\u5BF9\u5E94\u7684 API Key\u3002",
+  "set.openaiPresetPlaceholder": "\u9009\u62E9\u670D\u52A1\u5546\u5FEB\u6377\u586B\u5165\u2026",
   "set.maxTokens": "\u6700\u5927\u8F93\u51FA tokens",
   "set.maxTokensDesc": "\u5355\u6B21\u5206\u6790\u5141\u8BB8\u751F\u6210\u7684\u6700\u5927 token \u6570",
   "set.roleHeading": "\u89D2\u8272\u8BBE\u5B9A",
@@ -271,6 +309,11 @@ var EN = {
   "set.openaiKey": "OpenAI API key",
   "set.baseUrl": "Base URL",
   "set.baseUrlDesc": "OpenAI-compatible endpoint, e.g. local Ollama: http://localhost:11434/v1",
+  "set.geminiKey": "Google AI Studio API key",
+  "set.modelGeminiDesc": "Defaults to gemini-2.5-flash",
+  "set.openaiPreset": "Quick preset",
+  "set.openaiPresetDesc": "Pick a provider to fill in the Base URL and model below; you still need to enter its API key.",
+  "set.openaiPresetPlaceholder": "Fill in from a provider preset\u2026",
   "set.maxTokens": "Max output tokens",
   "set.maxTokensDesc": "Maximum tokens generated per analysis",
   "set.roleHeading": "Role",
@@ -352,8 +395,27 @@ var DEFAULT_ROLE = "\u4F60\u662F\u4E00\u4F4D\u5584\u4E8E\u8BB2\u89E3\u7684\u5BFC
 function newPresetId() {
   return "fn-" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
 }
+var OPENAI_PRESETS = [
+  { id: "deepseek", label: "DeepSeek", baseUrl: "https://api.deepseek.com/v1", model: "deepseek-chat" },
+  {
+    id: "qwen",
+    label: "\u963F\u91CC\u4E91\u767E\u70BC / \u901A\u4E49\u5343\u95EE (Qwen)",
+    baseUrl: "https://dashscope.aliyuncs.com/compatible-mode/v1",
+    model: "qwen-plus"
+  },
+  { id: "glm", label: "\u667A\u8C31 GLM", baseUrl: "https://open.bigmodel.cn/api/paas/v4", model: "glm-4-plus" },
+  { id: "kimi", label: "\u6708\u4E4B\u6697\u9762 Kimi (Moonshot AI)", baseUrl: "https://api.moonshot.cn/v1", model: "moonshot-v1-8k" },
+  {
+    id: "siliconflow",
+    label: "\u7845\u57FA\u6D41\u52A8 SiliconFlow",
+    baseUrl: "https://api.siliconflow.cn/v1",
+    model: "deepseek-ai/DeepSeek-V3"
+  },
+  { id: "minimax", label: "MiniMax", baseUrl: "https://api.minimax.chat/v1", model: "abab6.5s-chat" },
+  { id: "ollama", label: "\u672C\u5730 Ollama", baseUrl: "http://localhost:11434/v1", model: "qwen2.5" }
+];
 function buildLLMConfig(s) {
-  const config = s.provider === "claude" ? { provider: "claude", apiKey: s.claudeApiKey, model: s.claudeModel, baseUrl: "", maxTokens: s.maxTokens } : {
+  const config = s.provider === "claude" ? { provider: "claude", apiKey: s.claudeApiKey, model: s.claudeModel, baseUrl: "", maxTokens: s.maxTokens } : s.provider === "gemini" ? { provider: "gemini", apiKey: s.geminiApiKey, model: s.geminiModel, baseUrl: "", maxTokens: s.maxTokens } : {
     provider: "openai",
     apiKey: s.openaiApiKey,
     model: s.openaiModel,
@@ -369,6 +431,8 @@ var DEFAULT_SETTINGS = {
   openaiApiKey: "",
   openaiBaseUrl: "https://api.openai.com/v1",
   openaiModel: "gpt-4o",
+  geminiApiKey: "",
+  geminiModel: "gemini-2.5-flash",
   maxTokens: 4096,
   prompts: [
     {
@@ -526,7 +590,7 @@ var ChewItSettingTab = class extends import_obsidian.PluginSettingTab {
     const save = () => this.plugin.saveSettings();
     new import_obsidian.Setting(containerEl).setName(t(lang, "set.providerHeading")).setHeading();
     new import_obsidian.Setting(containerEl).setName(t(lang, "set.provider")).addDropdown(
-      (d) => d.addOption("claude", "Claude (Anthropic)").addOption("openai", "OpenAI").setValue(s.provider).onChange(async (v) => {
+      (d) => d.addOption("claude", "Claude (Anthropic)").addOption("openai", "OpenAI").addOption("gemini", "Gemini (Google)").setValue(s.provider).onChange(async (v) => {
         s.provider = v;
         await save();
         this.display();
@@ -546,12 +610,38 @@ var ChewItSettingTab = class extends import_obsidian.PluginSettingTab {
           await save();
         })
       );
+    } else if (s.provider === "gemini") {
+      new import_obsidian.Setting(containerEl).setName(t(lang, "set.geminiKey")).addText((tx) => {
+        tx.inputEl.type = "password";
+        tx.setPlaceholder("AIza...").setValue(s.geminiApiKey).onChange(async (v) => {
+          s.geminiApiKey = v.trim();
+          await save();
+        });
+      });
+      new import_obsidian.Setting(containerEl).setName(t(lang, "set.model")).setDesc(t(lang, "set.modelGeminiDesc")).addText(
+        (tx) => tx.setValue(s.geminiModel).onChange(async (v) => {
+          s.geminiModel = v.trim() || "gemini-2.5-flash";
+          await save();
+        })
+      );
     } else {
       new import_obsidian.Setting(containerEl).setName(t(lang, "set.openaiKey")).addText((tx) => {
         tx.inputEl.type = "password";
         tx.setPlaceholder("sk-...").setValue(s.openaiApiKey).onChange(async (v) => {
           s.openaiApiKey = v.trim();
           await save();
+        });
+      });
+      new import_obsidian.Setting(containerEl).setName(t(lang, "set.openaiPreset")).setDesc(t(lang, "set.openaiPresetDesc")).addDropdown((d) => {
+        d.addOption("", t(lang, "set.openaiPresetPlaceholder"));
+        for (const p of OPENAI_PRESETS) d.addOption(p.id, p.label);
+        d.setValue("").onChange(async (v) => {
+          const preset = OPENAI_PRESETS.find((p) => p.id === v);
+          if (!preset) return;
+          s.openaiBaseUrl = preset.baseUrl;
+          s.openaiModel = preset.model;
+          await save();
+          this.display();
         });
       });
       new import_obsidian.Setting(containerEl).setName(t(lang, "set.baseUrl")).setDesc(t(lang, "set.baseUrlDesc")).addText(
@@ -595,6 +685,25 @@ var ChewItSettingTab = class extends import_obsidian.PluginSettingTab {
         cls: "chew-it-group-title",
         text: `${i + 1}. ${p.label || t(lang, "ui.untitled")}`
       });
+      const gen = summary.createEl("button", { cls: "chew-it-group-gen" });
+      (0, import_obsidian.setIcon)(gen, "sparkles");
+      (0, import_obsidian.setTooltip)(gen, t(lang, "set.genPrompt"));
+      gen.onclick = async (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        gen.disabled = true;
+        gen.addClass("is-generating");
+        (0, import_obsidian.setIcon)(gen, "loader-2");
+        (0, import_obsidian.setTooltip)(gen, t(lang, "set.genPromptGenerating"));
+        try {
+          await this.generatePreset(p, lang);
+        } finally {
+          gen.disabled = false;
+          gen.removeClass("is-generating");
+          (0, import_obsidian.setIcon)(gen, "sparkles");
+          (0, import_obsidian.setTooltip)(gen, t(lang, "set.genPrompt"));
+        }
+      };
       const del = summary.createEl("button", { cls: "chew-it-group-del" });
       (0, import_obsidian.setIcon)(del, "trash");
       del.setAttribute("aria-label", t(lang, "set.delFn"));
@@ -613,19 +722,7 @@ var ChewItSettingTab = class extends import_obsidian.PluginSettingTab {
           await save();
           this.plugin.refreshViews();
         })
-      ).addExtraButton((btn) => {
-        btn.setIcon("sparkles").setTooltip(t(lang, "set.genPrompt"));
-        btn.onClick(async () => {
-          btn.setDisabled(true);
-          btn.setTooltip(t(lang, "set.genPromptGenerating"));
-          try {
-            await this.generatePreset(p, lang);
-          } finally {
-            btn.setDisabled(false);
-            btn.setTooltip(t(lang, "set.genPrompt"));
-          }
-        });
-      }).addToggle(
+      ).addToggle(
         (tg) => tg.setTooltip(t(lang, "set.fnEnabled")).setValue(p.enabled !== false).onChange(async (v) => {
           p.enabled = v;
           await save();

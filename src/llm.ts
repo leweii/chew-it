@@ -1,14 +1,15 @@
 // Streaming LLM client for Chew It.
-// Supports the Anthropic Messages API and any OpenAI-compatible /chat/completions endpoint.
+// Supports the Anthropic Messages API, the Google Gemini API, and any
+// OpenAI-compatible /chat/completions endpoint.
 // Uses the browser `fetch` (Obsidian runs in Electron) so we can stream token-by-token.
 
-export type Provider = "claude" | "openai";
+export type Provider = "claude" | "openai" | "gemini";
 
 export interface LLMConfig {
   provider: Provider;
   apiKey: string;
   model: string;
-  baseUrl: string; // OpenAI-compatible only; ignored for Claude
+  baseUrl: string; // OpenAI-compatible only; ignored for Claude and Gemini
   maxTokens: number;
 }
 
@@ -30,9 +31,16 @@ interface OpenAIStreamEvent {
   choices?: { delta?: { content?: string } }[];
 }
 
+interface GeminiStreamEvent {
+  candidates?: { content?: { parts?: { text?: string }[] } }[];
+  error?: { message?: string };
+}
+
 export async function streamCompletion(config: LLMConfig, req: LLMRequest): Promise<void> {
   if (config.provider === "claude") {
     await streamClaude(config, req);
+  } else if (config.provider === "gemini") {
+    await streamGemini(config, req);
   } else {
     await streamOpenAI(config, req);
   }
@@ -121,6 +129,38 @@ async function streamOpenAI(config: LLMConfig, req: LLMRequest): Promise<void> {
     }
     const delta = evt.choices?.[0]?.delta?.content;
     if (typeof delta === "string" && delta) req.onToken(delta);
+  });
+}
+
+async function streamGemini(config: LLMConfig, req: LLMRequest): Promise<void> {
+  const url =
+    `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(config.model)}` +
+    `:streamGenerateContent?alt=sse&key=${encodeURIComponent(config.apiKey)}`;
+  // See streamClaude: fetch is required for token-by-token streaming.
+  const resp = await fetch(url, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      // Omit an empty role so a blank per-function setting sends no system.
+      ...(req.system ? { systemInstruction: { parts: [{ text: req.system }] } } : {}),
+      contents: [{ role: "user", parts: [{ text: req.user }] }],
+      generationConfig: { maxOutputTokens: config.maxTokens },
+    }),
+    signal: req.signal,
+  });
+
+  await ensureOk(resp);
+  await readSSE(resp, (data) => {
+    if (data === "[DONE]") return;
+    let evt: GeminiStreamEvent;
+    try {
+      evt = JSON.parse(data) as GeminiStreamEvent;
+    } catch {
+      return;
+    }
+    if (evt.error) throw new Error(evt.error.message ?? "Gemini streaming error");
+    const text = evt.candidates?.[0]?.content?.parts?.map((p) => p.text ?? "").join("");
+    if (text) req.onToken(text);
   });
 }
 

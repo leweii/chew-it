@@ -362,7 +362,8 @@
   white-space: nowrap;
 }
 
-.chew-it-group-del {
+.chew-it-group-del,
+.chew-it-group-gen {
   flex: 0 0 auto;
   display: inline-flex;
   align-items: center;
@@ -383,9 +384,26 @@
   color: var(--text-error);
 }
 
-.chew-it-group-del svg {
+.chew-it-group-gen:hover {
+  background: var(--background-modifier-hover);
+  color: var(--text-accent);
+}
+
+.chew-it-group-gen:disabled {
+  cursor: default;
+  opacity: 0.7;
+}
+
+.chew-it-group-del svg,
+.chew-it-group-gen svg {
   width: 15px;
   height: 15px;
+}
+
+/* Spins the icon while a prompt is being generated, mirroring the panel's
+   own "thinking" indicator. */
+.chew-it-group-gen.is-generating svg {
+  animation: chew-it-spin 0.9s linear infinite;
 }
 
 /* Keep every control in a card the same width so the fields line up. */

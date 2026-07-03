@@ -1,4 +1,4 @@
-import { App, Modal, Notice, PluginSettingTab, Setting, setIcon } from "obsidian";
+import { App, Modal, Notice, PluginSettingTab, Setting, setIcon, setTooltip } from "obsidian";
 import type ChewItPlugin from "./main";
 import { completeText, type LLMConfig, type Provider } from "./llm";
 import type { OutputFormat } from "./output";
@@ -30,6 +30,8 @@ export interface ChewItSettings {
   openaiApiKey: string;
   openaiBaseUrl: string;
   openaiModel: string;
+  geminiApiKey: string;
+  geminiModel: string;
   maxTokens: number;
   // Legacy global role, kept only to migrate into per-function roles.
   systemPrompt?: string;
@@ -45,18 +47,50 @@ export function newPresetId(): string {
   return "fn-" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
 }
 
+// Quick-fill presets for popular OpenAI-compatible endpoints, mainly
+// domestic open-weight model providers. Picking one just fills in the Base
+// URL and model fields below; the API key still has to be entered by hand.
+interface OpenAIPreset {
+  id: string;
+  label: string;
+  baseUrl: string;
+  model: string;
+}
+
+export const OPENAI_PRESETS: OpenAIPreset[] = [
+  { id: "deepseek", label: "DeepSeek", baseUrl: "https://api.deepseek.com/v1", model: "deepseek-chat" },
+  {
+    id: "qwen",
+    label: "阿里云百炼 / 通义千问 (Qwen)",
+    baseUrl: "https://dashscope.aliyuncs.com/compatible-mode/v1",
+    model: "qwen-plus",
+  },
+  { id: "glm", label: "智谱 GLM", baseUrl: "https://open.bigmodel.cn/api/paas/v4", model: "glm-4-plus" },
+  { id: "kimi", label: "月之暗面 Kimi (Moonshot AI)", baseUrl: "https://api.moonshot.cn/v1", model: "moonshot-v1-8k" },
+  {
+    id: "siliconflow",
+    label: "硅基流动 SiliconFlow",
+    baseUrl: "https://api.siliconflow.cn/v1",
+    model: "deepseek-ai/DeepSeek-V3",
+  },
+  { id: "minimax", label: "MiniMax", baseUrl: "https://api.minimax.chat/v1", model: "abab6.5s-chat" },
+  { id: "ollama", label: "本地 Ollama", baseUrl: "http://localhost:11434/v1", model: "qwen2.5" },
+];
+
 // Shared with the panel view, which streams analyses using the same config.
 export function buildLLMConfig(s: ChewItSettings): LLMConfig | null {
   const config: LLMConfig =
     s.provider === "claude"
       ? { provider: "claude", apiKey: s.claudeApiKey, model: s.claudeModel, baseUrl: "", maxTokens: s.maxTokens }
-      : {
-          provider: "openai",
-          apiKey: s.openaiApiKey,
-          model: s.openaiModel,
-          baseUrl: s.openaiBaseUrl,
-          maxTokens: s.maxTokens,
-        };
+      : s.provider === "gemini"
+        ? { provider: "gemini", apiKey: s.geminiApiKey, model: s.geminiModel, baseUrl: "", maxTokens: s.maxTokens }
+        : {
+            provider: "openai",
+            apiKey: s.openaiApiKey,
+            model: s.openaiModel,
+            baseUrl: s.openaiBaseUrl,
+            maxTokens: s.maxTokens,
+          };
   return config.apiKey ? config : null;
 }
 
@@ -67,6 +101,8 @@ export const DEFAULT_SETTINGS: ChewItSettings = {
   openaiApiKey: "",
   openaiBaseUrl: "https://api.openai.com/v1",
   openaiModel: "gpt-4o",
+  geminiApiKey: "",
+  geminiModel: "gemini-2.5-flash",
   maxTokens: 4096,
   prompts: [
     {
@@ -262,6 +298,7 @@ export class ChewItSettingTab extends PluginSettingTab {
         d
           .addOption("claude", "Claude (Anthropic)")
           .addOption("openai", "OpenAI")
+          .addOption("gemini", "Gemini (Google)")
           .setValue(s.provider)
           .onChange(async (v) => {
             s.provider = v as Provider;
@@ -289,6 +326,25 @@ export class ChewItSettingTab extends PluginSettingTab {
             await save();
           })
         );
+    } else if (s.provider === "gemini") {
+      new Setting(containerEl).setName(t(lang, "set.geminiKey")).addText((tx) => {
+        tx.inputEl.type = "password";
+        tx.setPlaceholder("AIza...")
+          .setValue(s.geminiApiKey)
+          .onChange(async (v) => {
+            s.geminiApiKey = v.trim();
+            await save();
+          });
+      });
+      new Setting(containerEl)
+        .setName(t(lang, "set.model"))
+        .setDesc(t(lang, "set.modelGeminiDesc"))
+        .addText((tx) =>
+          tx.setValue(s.geminiModel).onChange(async (v) => {
+            s.geminiModel = v.trim() || "gemini-2.5-flash";
+            await save();
+          })
+        );
     } else {
       new Setting(containerEl).setName(t(lang, "set.openaiKey")).addText((tx) => {
         tx.inputEl.type = "password";
@@ -299,6 +355,21 @@ export class ChewItSettingTab extends PluginSettingTab {
             await save();
           });
       });
+      new Setting(containerEl)
+        .setName(t(lang, "set.openaiPreset"))
+        .setDesc(t(lang, "set.openaiPresetDesc"))
+        .addDropdown((d) => {
+          d.addOption("", t(lang, "set.openaiPresetPlaceholder"));
+          for (const p of OPENAI_PRESETS) d.addOption(p.id, p.label);
+          d.setValue("").onChange(async (v) => {
+            const preset = OPENAI_PRESETS.find((p) => p.id === v);
+            if (!preset) return;
+            s.openaiBaseUrl = preset.baseUrl;
+            s.openaiModel = preset.model;
+            await save();
+            this.display();
+          });
+        });
       new Setting(containerEl)
         .setName(t(lang, "set.baseUrl"))
         .setDesc(t(lang, "set.baseUrlDesc"))
@@ -360,6 +431,26 @@ export class ChewItSettingTab extends PluginSettingTab {
         cls: "chew-it-group-title",
         text: `${i + 1}. ${p.label || t(lang, "ui.untitled")}`,
       });
+      const gen = summary.createEl("button", { cls: "chew-it-group-gen" });
+      setIcon(gen, "sparkles");
+      setTooltip(gen, t(lang, "set.genPrompt"));
+      gen.onclick = async (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        gen.disabled = true;
+        gen.addClass("is-generating");
+        setIcon(gen, "loader-2");
+        setTooltip(gen, t(lang, "set.genPromptGenerating"));
+        try {
+          await this.generatePreset(p, lang);
+        } finally {
+          gen.disabled = false;
+          gen.removeClass("is-generating");
+          setIcon(gen, "sparkles");
+          setTooltip(gen, t(lang, "set.genPrompt"));
+        }
+      };
+
       const del = summary.createEl("button", { cls: "chew-it-group-del" });
       setIcon(del, "trash");
       del.setAttribute("aria-label", t(lang, "set.delFn"));
@@ -385,19 +476,6 @@ export class ChewItSettingTab extends PluginSettingTab {
               this.plugin.refreshViews();
             })
         )
-        .addExtraButton((btn) => {
-          btn.setIcon("sparkles").setTooltip(t(lang, "set.genPrompt"));
-          btn.onClick(async () => {
-            btn.setDisabled(true);
-            btn.setTooltip(t(lang, "set.genPromptGenerating"));
-            try {
-              await this.generatePreset(p, lang);
-            } finally {
-              btn.setDisabled(false);
-              btn.setTooltip(t(lang, "set.genPrompt"));
-            }
-          });
-        })
         .addToggle((tg) =>
           tg
             .setTooltip(t(lang, "set.fnEnabled"))
