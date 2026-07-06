@@ -1,6 +1,7 @@
 import { ItemView, MarkdownRenderer, Menu, Notice, setIcon, WorkspaceLeaf } from "obsidian";
 import type ChewItPlugin from "./main";
 import { streamCompletion, type LLMConfig } from "./llm";
+import { estimateTokens, outputTail, splitIntoChunks } from "./chunk";
 import { t } from "./i18n";
 import { buildLLMConfig, type PromptPreset } from "./settings";
 import { appendToCanvas, applyFilenameTemplate, extFor, toCanvas } from "./output";
@@ -501,16 +502,34 @@ export class ChewItView extends ItemView {
     run.tabEl.addClass("is-running");
     run.statusEl.setText(t(lang, "run.analyzing"));
 
-    const userPrompt =
-      `${prompt}\n\n---\n${t(lang, "prompt.docTitle")}：${note.title}\n\n${note.content}`;
+    const header = `${prompt}\n\n---\n${t(lang, "prompt.docTitle")}：${note.title}`;
+    // Tokens left for the note itself once the prompt, role, chunk-glue text
+    // and the model's own output are budgeted out of the context window. Notes
+    // that don't fit go through in sequential parts, each call carrying the
+    // tail of the output so far so the model can continue seamlessly.
+    const overhead = estimateTokens(header) + estimateTokens(system) + 1200;
+    const inputBudget = Math.max(1000, config.contextTokens - config.maxTokens - overhead);
+    const chunks = splitIntoChunks(note.content, inputBudget);
+    const n = chunks.length;
 
     try {
-      await streamCompletion(config, {
-        system,
-        user: userPrompt,
-        signal: run.controller.signal,
-        onToken: (tk) => this.appendChunk(run, tk),
-      });
+      for (let i = 0; i < n; i++) {
+        let user: string;
+        if (n === 1) {
+          user = `${header}\n\n${note.content}`;
+        } else {
+          run.statusEl.setText(t(lang, "run.analyzingPart", { i: String(i + 1), n: String(n) }));
+          // Keep a clean paragraph break between one part's output and the next.
+          if (run.raw.trim()) run.raw = run.raw.replace(/\s*$/, "\n\n");
+          user = this.buildChunkPrompt(header, chunks[i], i, n, run.raw, lang);
+        }
+        await streamCompletion(config, {
+          system,
+          user,
+          signal: run.controller.signal,
+          onToken: (tk) => this.appendChunk(run, tk),
+        });
+      }
       this.finishRun(run, t(lang, "run.done"), "is-done");
     } catch (e) {
       const err = e as Error;
@@ -524,6 +543,28 @@ export class ChewItView extends ItemView {
     } finally {
       await this.flushRender(run);
     }
+  }
+
+  // Assemble the user message for one part of a long note: task prompt, how
+  // this part fits into the whole, the tail of the output so far (so the model
+  // can pick up mid-flow), per-position continuity rules, then the part itself.
+  private buildChunkPrompt(
+    header: string,
+    chunk: string,
+    i: number,
+    n: number,
+    rawSoFar: string,
+    lang: ReturnType<ChewItView["lang"]>
+  ): string {
+    const iv = { i: String(i + 1), n: String(n) };
+    const parts = [header, t(lang, "prompt.chunkIntro", iv)];
+    const tail = outputTail(rawSoFar);
+    if (tail) parts.push(t(lang, "prompt.chunkPrev", { tail }));
+    parts.push(
+      t(lang, i === 0 ? "prompt.chunkFirst" : i === n - 1 ? "prompt.chunkLast" : "prompt.chunkMiddle")
+    );
+    parts.push(`${t(lang, "prompt.chunkBody", iv)}\n${chunk.trim()}`);
+    return parts.join("\n\n");
   }
 
   // Create a result tab + its (hidden unless active) content panel.

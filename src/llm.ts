@@ -11,6 +11,9 @@ export interface LLMConfig {
   model: string;
   baseUrl: string; // OpenAI-compatible only; ignored for Claude and Gemini
   maxTokens: number;
+  // The model's context window. Notes whose prompt would exceed it are split
+  // into parts and analyzed in sequential calls (see chunk.ts / view.ts).
+  contextTokens: number;
 }
 
 export interface LLMRequest {

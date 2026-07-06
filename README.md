@@ -20,7 +20,7 @@ Works with **Claude (Anthropic)** and any **OpenAI-compatible** endpoint (includ
 
 ## Privacy / network use
 
-Chew It sends the **full text of the current note** (including unsaved edits) to the LLM provider you configure, over HTTPS, using the API key you provide. Nothing is sent anywhere else. The whole document is sent without truncation — mind your provider's context window and billing on very long notes.
+Chew It sends the **full text of the current note** (including unsaved edits) to the LLM provider you configure, over HTTPS, using the API key you provide. Nothing is sent anywhere else. There is no length cap: a note longer than the model's context window is automatically split into parts, analyzed in sequential calls, and the outputs are stitched into one seamless result — mind billing on very long notes, since they cost several calls.
 
 ## Installation
 
@@ -57,6 +57,7 @@ Everything is editable in **Settings → Chew It**:
 
 - **Provider** — Claude (Anthropic), default model `claude-opus-4-8`; or an OpenAI-compatible endpoint with a custom base URL and model.
 - **Max output tokens** — the per-analysis output cap.
+- **Model context window (tokens)** — set to your model's context size; longer notes are auto-split into multiple calls and stitched back together.
 - **Perspectives** — add, rename, enable/disable, and edit each one's role and prompt.
 - **Output templates** — configure export targets (Markdown / Canvas), destination folder, and filename template (placeholders: `{note}` `{label}` `{date}` `{datetime}`).
 

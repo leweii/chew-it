@@ -14,10 +14,20 @@ const ZH: Dict = {
   "ui.untitled": "未命名",
   "ui.analyzingNote": "分析：{title}",
   "run.analyzing": "分析中…",
+  "run.analyzingPart": "分析中…（第 {i}/{n} 段）",
   "run.done": "完成",
   "run.stopped": "已停止",
   "run.error": "出错",
   "prompt.docTitle": "文档标题",
+  "prompt.chunkIntro":
+    "【说明】原文较长，已按顺序拆分为 {n} 段，本次只提供第 {i} 段。各段的输出会按顺序直接拼接成一份完整结果，请只处理本段原文，不要提及分段这件事。",
+  "prompt.chunkFirst": "【衔接要求】这是第一段：按任务正常开头，但先不要写全文性的总结或结语。",
+  "prompt.chunkMiddle":
+    "【衔接要求】这是中间段：紧接前文输出继续写，保持标题层级、编号、术语与语气一致；不要写开场白，不要重复已输出的内容，也不要写总结或结语。",
+  "prompt.chunkLast":
+    "【衔接要求】这是最后一段：紧接前文输出继续写，保持风格一致，不要重复已输出的内容；如任务需要，可在结尾给出全文的收尾或总结。",
+  "prompt.chunkPrev": "【你此前对前几段已输出内容的结尾（仅供衔接参考，不要重复）】\n{tail}",
+  "prompt.chunkBody": "【第 {i}/{n} 段原文】",
   "notice.noNote": "没有可分析的 Markdown 文档。",
   "notice.empty": "当前文档为空。",
   "notice.needKey": "请先在设置中填写 API Key。",
@@ -47,6 +57,9 @@ const ZH: Dict = {
   "set.openaiPresetPlaceholder": "选择服务商快捷填入…",
   "set.maxTokens": "最大输出 tokens",
   "set.maxTokensDesc": "单次分析允许生成的最大 token 数",
+  "set.contextTokens": "模型上下文长度（tokens）",
+  "set.contextTokensDesc":
+    "所用模型的上下文窗口大小。超出的长文档会自动分段、多次调用模型并把结果拼接连贯，没有长度上限。请按所用模型实际填写（如 Kimi 8k 填 8000，Claude 200k 填 200000）。",
   "set.roleHeading": "角色设定",
   "set.systemPrompt": "系统提示（所有功能共用）",
   "set.systemPromptDesc": "定义模型统一的角色与语气，对下面每个 Tab 都生效。",
@@ -119,10 +132,22 @@ const EN: Dict = {
   "ui.untitled": "Untitled",
   "ui.analyzingNote": "Analyzing: {title}",
   "run.analyzing": "Analyzing…",
+  "run.analyzingPart": "Analyzing… (part {i}/{n})",
   "run.done": "Done",
   "run.stopped": "Stopped",
   "run.error": "Error",
   "prompt.docTitle": "Document title",
+  "prompt.chunkIntro":
+    "[Note] The source document is long and has been split into {n} sequential parts; only part {i} is provided here. Each part's output will be concatenated in order into one complete result, so process only this part and never mention the splitting.",
+  "prompt.chunkFirst":
+    "[Continuity] This is the first part: open normally for the task, but do not write a whole-document summary or conclusion yet.",
+  "prompt.chunkMiddle":
+    "[Continuity] This is a middle part: continue directly from the previous output, keeping heading levels, numbering, terminology and tone consistent; no preamble, no repetition of earlier output, and no summary or conclusion.",
+  "prompt.chunkLast":
+    "[Continuity] This is the final part: continue directly from the previous output in the same style without repeating earlier output; if the task calls for it, end with an overall wrap-up or conclusion.",
+  "prompt.chunkPrev":
+    "[Tail of your output for the earlier parts (for continuity only — do not repeat it)]\n{tail}",
+  "prompt.chunkBody": "[Part {i}/{n} of the source]",
   "notice.noNote": "No Markdown note to analyze.",
   "notice.empty": "The note is empty.",
   "notice.needKey": "Please set your API key in Settings.",
@@ -152,6 +177,9 @@ const EN: Dict = {
   "set.openaiPresetPlaceholder": "Fill in from a provider preset…",
   "set.maxTokens": "Max output tokens",
   "set.maxTokensDesc": "Maximum tokens generated per analysis",
+  "set.contextTokens": "Model context window (tokens)",
+  "set.contextTokensDesc":
+    "Your model's context window. Longer notes are split into parts, sent in multiple calls and stitched into one seamless result — there is no length cap. Match your model (e.g. 8000 for Kimi 8k, 200000 for Claude 200k).",
   "set.roleHeading": "Role",
   "set.systemPrompt": "System prompt (shared by all functions)",
   "set.systemPromptDesc": "Defines the model's role and tone; applies to every tab below.",

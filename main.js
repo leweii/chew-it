@@ -185,10 +185,17 @@ var ZH = {
   "ui.untitled": "\u672A\u547D\u540D",
   "ui.analyzingNote": "\u5206\u6790\uFF1A{title}",
   "run.analyzing": "\u5206\u6790\u4E2D\u2026",
+  "run.analyzingPart": "\u5206\u6790\u4E2D\u2026\uFF08\u7B2C {i}/{n} \u6BB5\uFF09",
   "run.done": "\u5B8C\u6210",
   "run.stopped": "\u5DF2\u505C\u6B62",
   "run.error": "\u51FA\u9519",
   "prompt.docTitle": "\u6587\u6863\u6807\u9898",
+  "prompt.chunkIntro": "\u3010\u8BF4\u660E\u3011\u539F\u6587\u8F83\u957F\uFF0C\u5DF2\u6309\u987A\u5E8F\u62C6\u5206\u4E3A {n} \u6BB5\uFF0C\u672C\u6B21\u53EA\u63D0\u4F9B\u7B2C {i} \u6BB5\u3002\u5404\u6BB5\u7684\u8F93\u51FA\u4F1A\u6309\u987A\u5E8F\u76F4\u63A5\u62FC\u63A5\u6210\u4E00\u4EFD\u5B8C\u6574\u7ED3\u679C\uFF0C\u8BF7\u53EA\u5904\u7406\u672C\u6BB5\u539F\u6587\uFF0C\u4E0D\u8981\u63D0\u53CA\u5206\u6BB5\u8FD9\u4EF6\u4E8B\u3002",
+  "prompt.chunkFirst": "\u3010\u8854\u63A5\u8981\u6C42\u3011\u8FD9\u662F\u7B2C\u4E00\u6BB5\uFF1A\u6309\u4EFB\u52A1\u6B63\u5E38\u5F00\u5934\uFF0C\u4F46\u5148\u4E0D\u8981\u5199\u5168\u6587\u6027\u7684\u603B\u7ED3\u6216\u7ED3\u8BED\u3002",
+  "prompt.chunkMiddle": "\u3010\u8854\u63A5\u8981\u6C42\u3011\u8FD9\u662F\u4E2D\u95F4\u6BB5\uFF1A\u7D27\u63A5\u524D\u6587\u8F93\u51FA\u7EE7\u7EED\u5199\uFF0C\u4FDD\u6301\u6807\u9898\u5C42\u7EA7\u3001\u7F16\u53F7\u3001\u672F\u8BED\u4E0E\u8BED\u6C14\u4E00\u81F4\uFF1B\u4E0D\u8981\u5199\u5F00\u573A\u767D\uFF0C\u4E0D\u8981\u91CD\u590D\u5DF2\u8F93\u51FA\u7684\u5185\u5BB9\uFF0C\u4E5F\u4E0D\u8981\u5199\u603B\u7ED3\u6216\u7ED3\u8BED\u3002",
+  "prompt.chunkLast": "\u3010\u8854\u63A5\u8981\u6C42\u3011\u8FD9\u662F\u6700\u540E\u4E00\u6BB5\uFF1A\u7D27\u63A5\u524D\u6587\u8F93\u51FA\u7EE7\u7EED\u5199\uFF0C\u4FDD\u6301\u98CE\u683C\u4E00\u81F4\uFF0C\u4E0D\u8981\u91CD\u590D\u5DF2\u8F93\u51FA\u7684\u5185\u5BB9\uFF1B\u5982\u4EFB\u52A1\u9700\u8981\uFF0C\u53EF\u5728\u7ED3\u5C3E\u7ED9\u51FA\u5168\u6587\u7684\u6536\u5C3E\u6216\u603B\u7ED3\u3002",
+  "prompt.chunkPrev": "\u3010\u4F60\u6B64\u524D\u5BF9\u524D\u51E0\u6BB5\u5DF2\u8F93\u51FA\u5185\u5BB9\u7684\u7ED3\u5C3E\uFF08\u4EC5\u4F9B\u8854\u63A5\u53C2\u8003\uFF0C\u4E0D\u8981\u91CD\u590D\uFF09\u3011\n{tail}",
+  "prompt.chunkBody": "\u3010\u7B2C {i}/{n} \u6BB5\u539F\u6587\u3011",
   "notice.noNote": "\u6CA1\u6709\u53EF\u5206\u6790\u7684 Markdown \u6587\u6863\u3002",
   "notice.empty": "\u5F53\u524D\u6587\u6863\u4E3A\u7A7A\u3002",
   "notice.needKey": "\u8BF7\u5148\u5728\u8BBE\u7F6E\u4E2D\u586B\u5199 API Key\u3002",
@@ -218,6 +225,8 @@ var ZH = {
   "set.openaiPresetPlaceholder": "\u9009\u62E9\u670D\u52A1\u5546\u5FEB\u6377\u586B\u5165\u2026",
   "set.maxTokens": "\u6700\u5927\u8F93\u51FA tokens",
   "set.maxTokensDesc": "\u5355\u6B21\u5206\u6790\u5141\u8BB8\u751F\u6210\u7684\u6700\u5927 token \u6570",
+  "set.contextTokens": "\u6A21\u578B\u4E0A\u4E0B\u6587\u957F\u5EA6\uFF08tokens\uFF09",
+  "set.contextTokensDesc": "\u6240\u7528\u6A21\u578B\u7684\u4E0A\u4E0B\u6587\u7A97\u53E3\u5927\u5C0F\u3002\u8D85\u51FA\u7684\u957F\u6587\u6863\u4F1A\u81EA\u52A8\u5206\u6BB5\u3001\u591A\u6B21\u8C03\u7528\u6A21\u578B\u5E76\u628A\u7ED3\u679C\u62FC\u63A5\u8FDE\u8D2F\uFF0C\u6CA1\u6709\u957F\u5EA6\u4E0A\u9650\u3002\u8BF7\u6309\u6240\u7528\u6A21\u578B\u5B9E\u9645\u586B\u5199\uFF08\u5982 Kimi 8k \u586B 8000\uFF0CClaude 200k \u586B 200000\uFF09\u3002",
   "set.roleHeading": "\u89D2\u8272\u8BBE\u5B9A",
   "set.systemPrompt": "\u7CFB\u7EDF\u63D0\u793A\uFF08\u6240\u6709\u529F\u80FD\u5171\u7528\uFF09",
   "set.systemPromptDesc": "\u5B9A\u4E49\u6A21\u578B\u7EDF\u4E00\u7684\u89D2\u8272\u4E0E\u8BED\u6C14\uFF0C\u5BF9\u4E0B\u9762\u6BCF\u4E2A Tab \u90FD\u751F\u6548\u3002",
@@ -283,10 +292,17 @@ var EN = {
   "ui.untitled": "Untitled",
   "ui.analyzingNote": "Analyzing: {title}",
   "run.analyzing": "Analyzing\u2026",
+  "run.analyzingPart": "Analyzing\u2026 (part {i}/{n})",
   "run.done": "Done",
   "run.stopped": "Stopped",
   "run.error": "Error",
   "prompt.docTitle": "Document title",
+  "prompt.chunkIntro": "[Note] The source document is long and has been split into {n} sequential parts; only part {i} is provided here. Each part's output will be concatenated in order into one complete result, so process only this part and never mention the splitting.",
+  "prompt.chunkFirst": "[Continuity] This is the first part: open normally for the task, but do not write a whole-document summary or conclusion yet.",
+  "prompt.chunkMiddle": "[Continuity] This is a middle part: continue directly from the previous output, keeping heading levels, numbering, terminology and tone consistent; no preamble, no repetition of earlier output, and no summary or conclusion.",
+  "prompt.chunkLast": "[Continuity] This is the final part: continue directly from the previous output in the same style without repeating earlier output; if the task calls for it, end with an overall wrap-up or conclusion.",
+  "prompt.chunkPrev": "[Tail of your output for the earlier parts (for continuity only \u2014 do not repeat it)]\n{tail}",
+  "prompt.chunkBody": "[Part {i}/{n} of the source]",
   "notice.noNote": "No Markdown note to analyze.",
   "notice.empty": "The note is empty.",
   "notice.needKey": "Please set your API key in Settings.",
@@ -316,6 +332,8 @@ var EN = {
   "set.openaiPresetPlaceholder": "Fill in from a provider preset\u2026",
   "set.maxTokens": "Max output tokens",
   "set.maxTokensDesc": "Maximum tokens generated per analysis",
+  "set.contextTokens": "Model context window (tokens)",
+  "set.contextTokensDesc": "Your model's context window. Longer notes are split into parts, sent in multiple calls and stitched into one seamless result \u2014 there is no length cap. Match your model (e.g. 8000 for Kimi 8k, 200000 for Claude 200k).",
   "set.roleHeading": "Role",
   "set.systemPrompt": "System prompt (shared by all functions)",
   "set.systemPromptDesc": "Defines the model's role and tone; applies to every tab below.",
@@ -415,12 +433,13 @@ var OPENAI_PRESETS = [
   { id: "ollama", label: "\u672C\u5730 Ollama", baseUrl: "http://localhost:11434/v1", model: "qwen2.5" }
 ];
 function buildLLMConfig(s) {
-  const config = s.provider === "claude" ? { provider: "claude", apiKey: s.claudeApiKey, model: s.claudeModel, baseUrl: "", maxTokens: s.maxTokens } : s.provider === "gemini" ? { provider: "gemini", apiKey: s.geminiApiKey, model: s.geminiModel, baseUrl: "", maxTokens: s.maxTokens } : {
+  const shared = { maxTokens: s.maxTokens, contextTokens: s.contextTokens };
+  const config = s.provider === "claude" ? { provider: "claude", apiKey: s.claudeApiKey, model: s.claudeModel, baseUrl: "", ...shared } : s.provider === "gemini" ? { provider: "gemini", apiKey: s.geminiApiKey, model: s.geminiModel, baseUrl: "", ...shared } : {
     provider: "openai",
     apiKey: s.openaiApiKey,
     model: s.openaiModel,
     baseUrl: s.openaiBaseUrl,
-    maxTokens: s.maxTokens
+    ...shared
   };
   return config.apiKey ? config : null;
 }
@@ -434,6 +453,7 @@ var DEFAULT_SETTINGS = {
   geminiApiKey: "",
   geminiModel: "gemini-2.5-flash",
   maxTokens: 4096,
+  contextTokens: 64e3,
   prompts: [
     {
       id: "outline",
@@ -666,6 +686,15 @@ var ChewItSettingTab = class extends import_obsidian.PluginSettingTab {
         }
       })
     );
+    new import_obsidian.Setting(containerEl).setName(t(lang, "set.contextTokens")).setDesc(t(lang, "set.contextTokensDesc")).addText(
+      (tx) => tx.setValue(String(s.contextTokens)).onChange(async (v) => {
+        const n = parseInt(v, 10);
+        if (!isNaN(n) && n > 0) {
+          s.contextTokens = n;
+          await save();
+        }
+      })
+    );
     new import_obsidian.Setting(containerEl).setName(t(lang, "set.fnHeading")).setHeading().addButton(
       (b) => b.setButtonText(t(lang, "set.addFn")).setCta().onClick(async () => {
         const id = newPresetId();
@@ -816,6 +845,56 @@ var ChewItSettingTab = class extends import_obsidian.PluginSettingTab {
 
 // src/view.ts
 var import_obsidian2 = require("obsidian");
+
+// src/chunk.ts
+var CJK_RE = /[\u2e80-\u9fff\uac00-\ud7af\uf900-\ufaff\uff00-\uffef]/;
+function estimateTokens(text) {
+  let cjk = 0;
+  let total = 0;
+  for (const ch of text) {
+    total++;
+    if (CJK_RE.test(ch)) cjk++;
+  }
+  return Math.ceil(cjk * 1.2 + (total - cjk) / 3.5);
+}
+function splitIntoChunks(text, maxTokens) {
+  if (estimateTokens(text) <= maxTokens) return [text];
+  const chunks = [];
+  let current = "";
+  const push = () => {
+    if (current.trim()) chunks.push(current);
+    current = "";
+  };
+  const add = (piece) => {
+    if (current && estimateTokens(current + piece) > maxTokens) push();
+    current += piece;
+  };
+  for (const para of text.split(/(?<=\n\s*\n)/)) {
+    if (estimateTokens(para) <= maxTokens) {
+      add(para);
+      continue;
+    }
+    for (const line of para.split(/(?<=\n)/)) {
+      if (estimateTokens(line) <= maxTokens) {
+        add(line);
+        continue;
+      }
+      push();
+      const step = Math.max(200, Math.floor(maxTokens / 1.2));
+      const cps = Array.from(line);
+      for (let i = 0; i < cps.length; i += step) {
+        chunks.push(cps.slice(i, i + step).join(""));
+      }
+    }
+  }
+  push();
+  return chunks;
+}
+function outputTail(raw, maxChars = 1500) {
+  const trimmed = raw.trimEnd();
+  if (trimmed.length <= maxChars) return trimmed;
+  return "\u2026" + trimmed.slice(-maxChars);
+}
 
 // src/output.ts
 function sanitizeFilename(name) {
@@ -1377,19 +1456,33 @@ var ChewItView = class extends import_obsidian2.ItemView {
     run.tabEl.removeClass("is-error");
     run.tabEl.addClass("is-running");
     run.statusEl.setText(t(lang, "run.analyzing"));
-    const userPrompt = `${prompt}
+    const header = `${prompt}
 
 ---
-${t(lang, "prompt.docTitle")}\uFF1A${note.title}
+${t(lang, "prompt.docTitle")}\uFF1A${note.title}`;
+    const overhead = estimateTokens(header) + estimateTokens(system) + 1200;
+    const inputBudget = Math.max(1e3, config.contextTokens - config.maxTokens - overhead);
+    const chunks = splitIntoChunks(note.content, inputBudget);
+    const n = chunks.length;
+    try {
+      for (let i = 0; i < n; i++) {
+        let user;
+        if (n === 1) {
+          user = `${header}
 
 ${note.content}`;
-    try {
-      await streamCompletion(config, {
-        system,
-        user: userPrompt,
-        signal: run.controller.signal,
-        onToken: (tk) => this.appendChunk(run, tk)
-      });
+        } else {
+          run.statusEl.setText(t(lang, "run.analyzingPart", { i: String(i + 1), n: String(n) }));
+          if (run.raw.trim()) run.raw = run.raw.replace(/\s*$/, "\n\n");
+          user = this.buildChunkPrompt(header, chunks[i], i, n, run.raw, lang);
+        }
+        await streamCompletion(config, {
+          system,
+          user,
+          signal: run.controller.signal,
+          onToken: (tk) => this.appendChunk(run, tk)
+        });
+      }
       this.finishRun(run, t(lang, "run.done"), "is-done");
     } catch (e) {
       const err = e;
@@ -1403,6 +1496,21 @@ ${note.content}`;
     } finally {
       await this.flushRender(run);
     }
+  }
+  // Assemble the user message for one part of a long note: task prompt, how
+  // this part fits into the whole, the tail of the output so far (so the model
+  // can pick up mid-flow), per-position continuity rules, then the part itself.
+  buildChunkPrompt(header, chunk, i, n, rawSoFar, lang) {
+    const iv = { i: String(i + 1), n: String(n) };
+    const parts = [header, t(lang, "prompt.chunkIntro", iv)];
+    const tail = outputTail(rawSoFar);
+    if (tail) parts.push(t(lang, "prompt.chunkPrev", { tail }));
+    parts.push(
+      t(lang, i === 0 ? "prompt.chunkFirst" : i === n - 1 ? "prompt.chunkLast" : "prompt.chunkMiddle")
+    );
+    parts.push(`${t(lang, "prompt.chunkBody", iv)}
+${chunk.trim()}`);
+    return parts.join("\n\n");
   }
   // Create a result tab + its (hidden unless active) content panel.
   createRunBlock(title, lang) {

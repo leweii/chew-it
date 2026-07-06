@@ -33,6 +33,9 @@ export interface ChewItSettings {
   geminiApiKey: string;
   geminiModel: string;
   maxTokens: number;
+  // The model's context window (tokens). Longer notes are split into parts,
+  // sent in multiple calls and stitched back together.
+  contextTokens: number;
   // Legacy global role, kept only to migrate into per-function roles.
   systemPrompt?: string;
   prompts: PromptPreset[];
@@ -79,17 +82,18 @@ export const OPENAI_PRESETS: OpenAIPreset[] = [
 
 // Shared with the panel view, which streams analyses using the same config.
 export function buildLLMConfig(s: ChewItSettings): LLMConfig | null {
+  const shared = { maxTokens: s.maxTokens, contextTokens: s.contextTokens };
   const config: LLMConfig =
     s.provider === "claude"
-      ? { provider: "claude", apiKey: s.claudeApiKey, model: s.claudeModel, baseUrl: "", maxTokens: s.maxTokens }
+      ? { provider: "claude", apiKey: s.claudeApiKey, model: s.claudeModel, baseUrl: "", ...shared }
       : s.provider === "gemini"
-        ? { provider: "gemini", apiKey: s.geminiApiKey, model: s.geminiModel, baseUrl: "", maxTokens: s.maxTokens }
+        ? { provider: "gemini", apiKey: s.geminiApiKey, model: s.geminiModel, baseUrl: "", ...shared }
         : {
             provider: "openai",
             apiKey: s.openaiApiKey,
             model: s.openaiModel,
             baseUrl: s.openaiBaseUrl,
-            maxTokens: s.maxTokens,
+            ...shared,
           };
   return config.apiKey ? config : null;
 }
@@ -104,6 +108,7 @@ export const DEFAULT_SETTINGS: ChewItSettings = {
   geminiApiKey: "",
   geminiModel: "gemini-2.5-flash",
   maxTokens: 4096,
+  contextTokens: 64000,
   prompts: [
     {
       id: "outline",
@@ -397,6 +402,19 @@ export class ChewItSettingTab extends PluginSettingTab {
           const n = parseInt(v, 10);
           if (!isNaN(n) && n > 0) {
             s.maxTokens = n;
+            await save();
+          }
+        })
+      );
+
+    new Setting(containerEl)
+      .setName(t(lang, "set.contextTokens"))
+      .setDesc(t(lang, "set.contextTokensDesc"))
+      .addText((tx) =>
+        tx.setValue(String(s.contextTokens)).onChange(async (v) => {
+          const n = parseInt(v, 10);
+          if (!isNaN(n) && n > 0) {
+            s.contextTokens = n;
             await save();
           }
         })
