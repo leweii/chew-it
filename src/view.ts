@@ -1,6 +1,6 @@
 import { ItemView, MarkdownRenderer, Menu, Notice, setIcon, WorkspaceLeaf } from "obsidian";
 import type ChewItPlugin from "./main";
-import { streamCompletion, type LLMConfig } from "./llm";
+import { CONTEXT_TOKENS, MAX_OUTPUT_TOKENS, streamCompletion, type LLMConfig } from "./llm";
 import { estimateTokens, outputTail, splitIntoChunks } from "./chunk";
 import { t } from "./i18n";
 import { buildLLMConfig, type PromptPreset } from "./settings";
@@ -508,7 +508,7 @@ export class ChewItView extends ItemView {
     // that don't fit go through in sequential parts, each call carrying the
     // tail of the output so far so the model can continue seamlessly.
     const overhead = estimateTokens(header) + estimateTokens(system) + 1200;
-    const inputBudget = Math.max(1000, config.contextTokens - config.maxTokens - overhead);
+    const inputBudget = Math.max(1000, CONTEXT_TOKENS - MAX_OUTPUT_TOKENS - overhead);
     const chunks = splitIntoChunks(note.content, inputBudget);
     const n = chunks.length;
 

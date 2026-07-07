@@ -29,6 +29,8 @@ var import_obsidian3 = require("obsidian");
 var import_obsidian = require("obsidian");
 
 // src/llm.ts
+var MAX_OUTPUT_TOKENS = 8192;
+var CONTEXT_TOKENS = 64e3;
 async function streamCompletion(config, req) {
   if (config.provider === "claude") {
     await streamClaude(config, req);
@@ -55,7 +57,7 @@ async function streamClaude(config, req) {
     },
     body: JSON.stringify({
       model: config.model,
-      max_tokens: config.maxTokens,
+      max_tokens: MAX_OUTPUT_TOKENS,
       // Omit an empty role so a blank per-function setting sends no system.
       ...req.system ? { system: req.system } : {},
       stream: true,
@@ -90,7 +92,7 @@ async function streamOpenAI(config, req) {
     },
     body: JSON.stringify({
       model: config.model,
-      max_tokens: config.maxTokens,
+      max_tokens: MAX_OUTPUT_TOKENS,
       stream: true,
       messages: [
         ...req.system ? [{ role: "system", content: req.system }] : [],
@@ -122,7 +124,7 @@ async function streamGemini(config, req) {
       // Omit an empty role so a blank per-function setting sends no system.
       ...req.system ? { systemInstruction: { parts: [{ text: req.system }] } } : {},
       contents: [{ role: "user", parts: [{ text: req.user }] }],
-      generationConfig: { maxOutputTokens: config.maxTokens }
+      generationConfig: { maxOutputTokens: MAX_OUTPUT_TOKENS }
     }),
     signal: req.signal
   });
@@ -223,10 +225,6 @@ var ZH = {
   "set.openaiPreset": "\u5FEB\u6377\u9884\u8BBE",
   "set.openaiPresetDesc": "\u9009\u62E9\u670D\u52A1\u5546\u81EA\u52A8\u586B\u5165\u4E0B\u65B9 Base URL \u548C\u6A21\u578B\uFF0C\u4ECD\u9700\u81EA\u884C\u586B\u5199\u5BF9\u5E94\u7684 API Key\u3002",
   "set.openaiPresetPlaceholder": "\u9009\u62E9\u670D\u52A1\u5546\u5FEB\u6377\u586B\u5165\u2026",
-  "set.maxTokens": "\u6700\u5927\u8F93\u51FA tokens",
-  "set.maxTokensDesc": "\u5355\u6B21\u5206\u6790\u5141\u8BB8\u751F\u6210\u7684\u6700\u5927 token \u6570",
-  "set.contextTokens": "\u6A21\u578B\u4E0A\u4E0B\u6587\u957F\u5EA6\uFF08tokens\uFF09",
-  "set.contextTokensDesc": "\u6240\u7528\u6A21\u578B\u7684\u4E0A\u4E0B\u6587\u7A97\u53E3\u5927\u5C0F\u3002\u8D85\u51FA\u7684\u957F\u6587\u6863\u4F1A\u81EA\u52A8\u5206\u6BB5\u3001\u591A\u6B21\u8C03\u7528\u6A21\u578B\u5E76\u628A\u7ED3\u679C\u62FC\u63A5\u8FDE\u8D2F\uFF0C\u6CA1\u6709\u957F\u5EA6\u4E0A\u9650\u3002\u8BF7\u6309\u6240\u7528\u6A21\u578B\u5B9E\u9645\u586B\u5199\uFF08\u5982 Kimi 8k \u586B 8000\uFF0CClaude 200k \u586B 200000\uFF09\u3002",
   "set.roleHeading": "\u89D2\u8272\u8BBE\u5B9A",
   "set.systemPrompt": "\u7CFB\u7EDF\u63D0\u793A\uFF08\u6240\u6709\u529F\u80FD\u5171\u7528\uFF09",
   "set.systemPromptDesc": "\u5B9A\u4E49\u6A21\u578B\u7EDF\u4E00\u7684\u89D2\u8272\u4E0E\u8BED\u6C14\uFF0C\u5BF9\u4E0B\u9762\u6BCF\u4E2A Tab \u90FD\u751F\u6548\u3002",
@@ -330,10 +328,6 @@ var EN = {
   "set.openaiPreset": "Quick preset",
   "set.openaiPresetDesc": "Pick a provider to fill in the Base URL and model below; you still need to enter its API key.",
   "set.openaiPresetPlaceholder": "Fill in from a provider preset\u2026",
-  "set.maxTokens": "Max output tokens",
-  "set.maxTokensDesc": "Maximum tokens generated per analysis",
-  "set.contextTokens": "Model context window (tokens)",
-  "set.contextTokensDesc": "Your model's context window. Longer notes are split into parts, sent in multiple calls and stitched into one seamless result \u2014 there is no length cap. Match your model (e.g. 8000 for Kimi 8k, 200000 for Claude 200k).",
   "set.roleHeading": "Role",
   "set.systemPrompt": "System prompt (shared by all functions)",
   "set.systemPromptDesc": "Defines the model's role and tone; applies to every tab below.",
@@ -433,13 +427,11 @@ var OPENAI_PRESETS = [
   { id: "ollama", label: "\u672C\u5730 Ollama", baseUrl: "http://localhost:11434/v1", model: "qwen2.5" }
 ];
 function buildLLMConfig(s) {
-  const shared = { maxTokens: s.maxTokens, contextTokens: s.contextTokens };
-  const config = s.provider === "claude" ? { provider: "claude", apiKey: s.claudeApiKey, model: s.claudeModel, baseUrl: "", ...shared } : s.provider === "gemini" ? { provider: "gemini", apiKey: s.geminiApiKey, model: s.geminiModel, baseUrl: "", ...shared } : {
+  const config = s.provider === "claude" ? { provider: "claude", apiKey: s.claudeApiKey, model: s.claudeModel, baseUrl: "" } : s.provider === "gemini" ? { provider: "gemini", apiKey: s.geminiApiKey, model: s.geminiModel, baseUrl: "" } : {
     provider: "openai",
     apiKey: s.openaiApiKey,
     model: s.openaiModel,
-    baseUrl: s.openaiBaseUrl,
-    ...shared
+    baseUrl: s.openaiBaseUrl
   };
   return config.apiKey ? config : null;
 }
@@ -452,8 +444,6 @@ var DEFAULT_SETTINGS = {
   openaiModel: "gpt-4o",
   geminiApiKey: "",
   geminiModel: "gemini-2.5-flash",
-  maxTokens: 4096,
-  contextTokens: 64e3,
   prompts: [
     {
       id: "outline",
@@ -677,24 +667,6 @@ var ChewItSettingTab = class extends import_obsidian.PluginSettingTab {
         })
       );
     }
-    new import_obsidian.Setting(containerEl).setName(t(lang, "set.maxTokens")).setDesc(t(lang, "set.maxTokensDesc")).addText(
-      (tx) => tx.setValue(String(s.maxTokens)).onChange(async (v) => {
-        const n = parseInt(v, 10);
-        if (!isNaN(n) && n > 0) {
-          s.maxTokens = n;
-          await save();
-        }
-      })
-    );
-    new import_obsidian.Setting(containerEl).setName(t(lang, "set.contextTokens")).setDesc(t(lang, "set.contextTokensDesc")).addText(
-      (tx) => tx.setValue(String(s.contextTokens)).onChange(async (v) => {
-        const n = parseInt(v, 10);
-        if (!isNaN(n) && n > 0) {
-          s.contextTokens = n;
-          await save();
-        }
-      })
-    );
     new import_obsidian.Setting(containerEl).setName(t(lang, "set.fnHeading")).setHeading().addButton(
       (b) => b.setButtonText(t(lang, "set.addFn")).setCta().onClick(async () => {
         const id = newPresetId();
@@ -1471,7 +1443,7 @@ var ChewItView = class extends import_obsidian2.ItemView {
 ---
 ${t(lang, "prompt.docTitle")}\uFF1A${note.title}`;
     const overhead = estimateTokens(header) + estimateTokens(system) + 1200;
-    const inputBudget = Math.max(1e3, config.contextTokens - config.maxTokens - overhead);
+    const inputBudget = Math.max(1e3, CONTEXT_TOKENS - MAX_OUTPUT_TOKENS - overhead);
     const chunks = splitIntoChunks(note.content, inputBudget);
     const n = chunks.length;
     try {

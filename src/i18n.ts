@@ -55,11 +55,6 @@ const ZH: Dict = {
   "set.openaiPreset": "快捷预设",
   "set.openaiPresetDesc": "选择服务商自动填入下方 Base URL 和模型，仍需自行填写对应的 API Key。",
   "set.openaiPresetPlaceholder": "选择服务商快捷填入…",
-  "set.maxTokens": "最大输出 tokens",
-  "set.maxTokensDesc": "单次分析允许生成的最大 token 数",
-  "set.contextTokens": "模型上下文长度（tokens）",
-  "set.contextTokensDesc":
-    "所用模型的上下文窗口大小。超出的长文档会自动分段、多次调用模型并把结果拼接连贯，没有长度上限。请按所用模型实际填写（如 Kimi 8k 填 8000，Claude 200k 填 200000）。",
   "set.roleHeading": "角色设定",
   "set.systemPrompt": "系统提示（所有功能共用）",
   "set.systemPromptDesc": "定义模型统一的角色与语气，对下面每个 Tab 都生效。",
@@ -175,11 +170,6 @@ const EN: Dict = {
   "set.openaiPreset": "Quick preset",
   "set.openaiPresetDesc": "Pick a provider to fill in the Base URL and model below; you still need to enter its API key.",
   "set.openaiPresetPlaceholder": "Fill in from a provider preset…",
-  "set.maxTokens": "Max output tokens",
-  "set.maxTokensDesc": "Maximum tokens generated per analysis",
-  "set.contextTokens": "Model context window (tokens)",
-  "set.contextTokensDesc":
-    "Your model's context window. Longer notes are split into parts, sent in multiple calls and stitched into one seamless result — there is no length cap. Match your model (e.g. 8000 for Kimi 8k, 200000 for Claude 200k).",
   "set.roleHeading": "Role",
   "set.systemPrompt": "System prompt (shared by all functions)",
   "set.systemPromptDesc": "Defines the model's role and tone; applies to every tab below.",

@@ -10,11 +10,17 @@ export interface LLMConfig {
   apiKey: string;
   model: string;
   baseUrl: string; // OpenAI-compatible only; ignored for Claude and Gemini
-  maxTokens: number;
-  // The model's context window. Notes whose prompt would exceed it are split
-  // into parts and analyzed in sequential calls (see chunk.ts / view.ts).
-  contextTokens: number;
 }
+
+// A generous output cap, not exposed as a setting since users have no way to
+// know their model's true maximum. Large enough that responses finish
+// naturally instead of being cut off mid-generation.
+export const MAX_OUTPUT_TOKENS = 8192;
+
+// Assumed model context window, used to size input chunks (see chunk.ts /
+// view.ts). Real windows vary widely across providers; this errs
+// conservative so most providers won't reject a chunk as too long.
+export const CONTEXT_TOKENS = 64000;
 
 export interface LLMRequest {
   system: string;
@@ -74,7 +80,7 @@ async function streamClaude(config: LLMConfig, req: LLMRequest): Promise<void> {
     },
     body: JSON.stringify({
       model: config.model,
-      max_tokens: config.maxTokens,
+      max_tokens: MAX_OUTPUT_TOKENS,
       // Omit an empty role so a blank per-function setting sends no system.
       ...(req.system ? { system: req.system } : {}),
       stream: true,
@@ -111,7 +117,7 @@ async function streamOpenAI(config: LLMConfig, req: LLMRequest): Promise<void> {
     },
     body: JSON.stringify({
       model: config.model,
-      max_tokens: config.maxTokens,
+      max_tokens: MAX_OUTPUT_TOKENS,
       stream: true,
       messages: [
         ...(req.system ? [{ role: "system", content: req.system }] : []),
@@ -147,7 +153,7 @@ async function streamGemini(config: LLMConfig, req: LLMRequest): Promise<void> {
       // Omit an empty role so a blank per-function setting sends no system.
       ...(req.system ? { systemInstruction: { parts: [{ text: req.system }] } } : {}),
       contents: [{ role: "user", parts: [{ text: req.user }] }],
-      generationConfig: { maxOutputTokens: config.maxTokens },
+      generationConfig: { maxOutputTokens: MAX_OUTPUT_TOKENS },
     }),
     signal: req.signal,
   });
