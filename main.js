@@ -857,6 +857,16 @@ function estimateTokens(text) {
   }
   return Math.ceil(cjk * 1.2 + (total - cjk) / 3.5);
 }
+function splitAfter(text, delimiter) {
+  var _a;
+  const parts = text.split(delimiter);
+  const out = [];
+  for (let i = 0; i < parts.length; i += 2) {
+    const piece = parts[i] + ((_a = parts[i + 1]) != null ? _a : "");
+    if (piece) out.push(piece);
+  }
+  return out;
+}
 function splitIntoChunks(text, maxTokens) {
   if (estimateTokens(text) <= maxTokens) return [text];
   const chunks = [];
@@ -869,12 +879,12 @@ function splitIntoChunks(text, maxTokens) {
     if (current && estimateTokens(current + piece) > maxTokens) push();
     current += piece;
   };
-  for (const para of text.split(/(?<=\n\s*\n)/)) {
+  for (const para of splitAfter(text, /(\n\s*\n)/)) {
     if (estimateTokens(para) <= maxTokens) {
       add(para);
       continue;
     }
-    for (const line of para.split(/(?<=\n)/)) {
+    for (const line of splitAfter(para, /(\n)/)) {
       if (estimateTokens(line) <= maxTokens) {
         add(line);
         continue;

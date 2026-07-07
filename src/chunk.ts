@@ -17,6 +17,20 @@ export function estimateTokens(text: string): number {
   return Math.ceil(cjk * 1.2 + (total - cjk) / 3.5);
 }
 
+// Split `text` after each match of `delimiter`, keeping the delimiter
+// attached to the piece before it (so pieces concatenate back to `text`).
+// Written with a captured-delimiter split rather than a `(?<=...)` lookbehind,
+// which iOS supports only from 16.4. `delimiter` must have one capture group.
+function splitAfter(text: string, delimiter: RegExp): string[] {
+  const parts = text.split(delimiter);
+  const out: string[] = [];
+  for (let i = 0; i < parts.length; i += 2) {
+    const piece = parts[i] + (parts[i + 1] ?? "");
+    if (piece) out.push(piece);
+  }
+  return out;
+}
+
 // Split `text` into pieces that each estimate to at most `maxTokens`.
 // Prefers paragraph boundaries, falls back to line boundaries, and only
 // hard-slices when a single line alone exceeds the budget.
@@ -37,13 +51,13 @@ export function splitIntoChunks(text: string, maxTokens: number): string[] {
   };
 
   // Paragraphs, keeping their trailing blank lines attached.
-  for (const para of text.split(/(?<=\n\s*\n)/)) {
+  for (const para of splitAfter(text, /(\n\s*\n)/)) {
     if (estimateTokens(para) <= maxTokens) {
       add(para);
       continue;
     }
     // A single paragraph over budget: fall back to lines.
-    for (const line of para.split(/(?<=\n)/)) {
+    for (const line of splitAfter(para, /(\n)/)) {
       if (estimateTokens(line) <= maxTokens) {
         add(line);
         continue;
