@@ -56,12 +56,16 @@ npm run build      # 生成 main.js
 全部可在「设置 → Chew It」里改:
 
 - **提供方** —— Claude (Anthropic),默认模型 `claude-opus-4-8`;或 OpenAI 兼容接口(自定义 base URL 与模型)。
-- **最大输出 tokens** —— 单次分析的输出上限。
-- **模型上下文长度(tokens)** —— 按所用模型的上下文窗口填写;超长文档会自动分段多次调用并拼接结果。
 - **解析视角** —— 增删、重命名、启用/停用,以及编辑每个视角的角色与提示词。
 - **输出模板** —— 配置导出格式(Markdown / Canvas)、目标文件夹、文件名模板(占位符:`{note}` `{label}` `{date}` `{datetime}`)。
 
 界面语言(中文 / English)跟随 Obsidian 的显示语言自动切换。
+
+Token 相关限制全部自动处理 —— 超长文档会自动分段多次调用并拼接结果,无需任何配置。
+
+## 支持
+
+如果 Chew It 帮你省了时间,欢迎 [请我喝杯咖啡 (Ko-fi)](https://ko-fi.com/jakobhe) ☕
 
 ## 许可
 

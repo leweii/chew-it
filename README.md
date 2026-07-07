@@ -56,12 +56,16 @@ Copy `main.js`, `manifest.json`, and `styles.css` into your vault's `.obsidian/p
 Everything is editable in **Settings → Chew It**:
 
 - **Provider** — Claude (Anthropic), default model `claude-opus-4-8`; or an OpenAI-compatible endpoint with a custom base URL and model.
-- **Max output tokens** — the per-analysis output cap.
-- **Model context window (tokens)** — set to your model's context size; longer notes are auto-split into multiple calls and stitched back together.
 - **Perspectives** — add, rename, enable/disable, and edit each one's role and prompt.
 - **Output templates** — configure export targets (Markdown / Canvas), destination folder, and filename template (placeholders: `{note}` `{label}` `{date}` `{datetime}`).
 
 The interface language (English / 中文) follows your Obsidian display language automatically.
+
+Token limits are handled automatically — long notes are split into multiple calls and stitched back together; there is nothing to configure.
+
+## Support
+
+If Chew It saves you time, you can [buy me a coffee on Ko-fi](https://ko-fi.com/jakobhe) ☕
 
 ## License
 

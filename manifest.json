@@ -6,5 +6,6 @@
   "description": "Analyze the current note with an LLM in the sidebar — outline, key-concept explanations, and a distilled summary. Works with Claude (Anthropic), Gemini (Google), and any OpenAI-compatible API.",
   "author": "Jakob",
   "authorUrl": "https://github.com/leweii",
+  "fundingUrl": "https://ko-fi.com/jakobhe",
   "isDesktopOnly": false
 }
