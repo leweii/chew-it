@@ -325,8 +325,24 @@
 
 .chew-it-textarea {
   width: 100%;
+  min-height: 3.5em;
   resize: vertical;
   font-family: var(--font-text);
+}
+
+/* Let role / prompt textareas span the full card width instead of being
+   squeezed into the narrow control column. Name sits above, box below. */
+.chew-it-textarea-setting {
+  display: block;
+}
+
+.chew-it-textarea-setting .setting-item-info {
+  margin-bottom: 4px;
+}
+
+.chew-it-textarea-setting .setting-item-control {
+  width: 100%;
+  justify-content: flex-start;
 }
 
 /* Group each function / output preset under one shaded, collapsible card. */

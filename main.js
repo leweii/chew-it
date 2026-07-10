@@ -408,7 +408,7 @@ function newPresetId() {
   return "fn-" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
 }
 var OPENAI_PRESETS = [
-  { id: "deepseek", label: "DeepSeek", baseUrl: "https://api.deepseek.com/v1", model: "deepseek-chat" },
+  { id: "deepseek", label: "DeepSeek", baseUrl: "https://api.deepseek.com/v1", model: "deepseek-v4-flash" },
   {
     id: "qwen",
     label: "\u963F\u91CC\u4E91\u767E\u70BC / \u901A\u4E49\u5343\u95EE (Qwen)",
@@ -731,7 +731,7 @@ var ChewItSettingTab = class extends import_obsidian.PluginSettingTab {
           this.display();
         })
       );
-      new import_obsidian.Setting(block).setName(t(lang, "set.fnSystem")).addTextArea((tx) => {
+      new import_obsidian.Setting(block).setName(t(lang, "set.fnSystem")).setClass("chew-it-textarea-setting").addTextArea((tx) => {
         var _a2;
         tx.setPlaceholder(t(lang, "set.fnSystemPlaceholder")).setValue((_a2 = p.system) != null ? _a2 : "").onChange(async (v) => {
           p.system = v;
@@ -740,12 +740,12 @@ var ChewItSettingTab = class extends import_obsidian.PluginSettingTab {
         tx.inputEl.rows = 2;
         tx.inputEl.addClass("chew-it-textarea");
       });
-      new import_obsidian.Setting(block).setName(t(lang, "set.prompt")).addTextArea((tx) => {
+      new import_obsidian.Setting(block).setName(t(lang, "set.prompt")).setClass("chew-it-textarea-setting").addTextArea((tx) => {
         tx.setValue(p.prompt).onChange(async (v) => {
           p.prompt = v;
           await save();
         });
-        tx.inputEl.rows = 4;
+        tx.inputEl.rows = 3;
         tx.inputEl.addClass("chew-it-textarea");
       });
     });

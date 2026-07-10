@@ -57,7 +57,7 @@ interface OpenAIPreset {
 }
 
 export const OPENAI_PRESETS: OpenAIPreset[] = [
-  { id: "deepseek", label: "DeepSeek", baseUrl: "https://api.deepseek.com/v1", model: "deepseek-chat" },
+  { id: "deepseek", label: "DeepSeek", baseUrl: "https://api.deepseek.com/v1", model: "deepseek-v4-flash" },
   {
     id: "qwen",
     label: "阿里云百炼 / 通义千问 (Qwen)",
@@ -472,25 +472,31 @@ export class ChewItSettingTab extends PluginSettingTab {
             })
         );
 
-      new Setting(block).setName(t(lang, "set.fnSystem")).addTextArea((tx) => {
-        tx.setPlaceholder(t(lang, "set.fnSystemPlaceholder"))
-          .setValue(p.system ?? "")
-          .onChange(async (v) => {
-            p.system = v;
+      new Setting(block)
+        .setName(t(lang, "set.fnSystem"))
+        .setClass("chew-it-textarea-setting")
+        .addTextArea((tx) => {
+          tx.setPlaceholder(t(lang, "set.fnSystemPlaceholder"))
+            .setValue(p.system ?? "")
+            .onChange(async (v) => {
+              p.system = v;
+              await save();
+            });
+          tx.inputEl.rows = 2;
+          tx.inputEl.addClass("chew-it-textarea");
+        });
+
+      new Setting(block)
+        .setName(t(lang, "set.prompt"))
+        .setClass("chew-it-textarea-setting")
+        .addTextArea((tx) => {
+          tx.setValue(p.prompt).onChange(async (v) => {
+            p.prompt = v;
             await save();
           });
-        tx.inputEl.rows = 2;
-        tx.inputEl.addClass("chew-it-textarea");
-      });
-
-      new Setting(block).setName(t(lang, "set.prompt")).addTextArea((tx) => {
-        tx.setValue(p.prompt).onChange(async (v) => {
-          p.prompt = v;
-          await save();
+          tx.inputEl.rows = 3;
+          tx.inputEl.addClass("chew-it-textarea");
         });
-        tx.inputEl.rows = 4;
-        tx.inputEl.addClass("chew-it-textarea");
-      });
     });
 
     // ---- Outputs -----------------------------------------------------------
